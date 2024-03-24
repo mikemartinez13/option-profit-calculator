@@ -10,6 +10,7 @@ from yahoo_fin import stock_info
 from copy import deepcopy
 import base64
 import plots as plot
+import datetime
 
 # from helper import make_audio_file
 
@@ -74,5 +75,9 @@ if(strategy != "None"):
 
     st.subheader("Grid Selection:")
     st.write(return_value['selected_rows'])
+    st.subheader("DEBUG Values")
+    st.write(return_value['selected_rows'][0])
+    st.write(return_value['selected_rows'][0].get("Strike"))
 
-    #st.write(plot.make_heatmap())
+    heatmap = plot.make_heatmap(return_value['selected_rows'][0],ticker,strategy, return_value['selected_rows'][0].get("Strike"),expDate) 
+    st.write(heatmap[0])
