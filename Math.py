@@ -2,14 +2,17 @@ import requests
 import math
 import numpy as np
 from scipy.stats import norm
+import pandas as pd
 
 #Alpha Vantage Stock API Key: 42IHQ5T9TB4C28H0
-API_KEY = '42IHQ5T9TB4C28H0'
+API_KEY = '0VPIPX9KB59DLY4H'
 
 def get_current_price(symbol):
-    url = f'https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}&apikey={API_KEY}'
-    response = requests.get(url)
-    data = response.json()
+    # url = f'https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}&apikey={API_KEY}'
+    # response = requests.get(url)
+    # data = response.json()
+    # print(data)
+    return 172.28
     if 'Global Quote' in data:
         return float(data['Global Quote']['05. price'])
     else:
@@ -17,9 +20,12 @@ def get_current_price(symbol):
 
 
 def get_historical_prices(symbol, outputsize='compact'):
-    url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={symbol}&outputsize={outputsize}&apikey={API_KEY}'
-    response = requests.get(url)
-    data = response.json()
+    # url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={symbol}&outputsize={outputsize}&apikey={API_KEY}'
+    # response = requests.get(url)
+    # data = response.json()
+    prices = list(pd.read_csv("AAPL.csv")['Close'])
+    return prices
+
     if 'Time Series (Daily)' in data:
         prices = [float(data['Time Series (Daily)'][date]['4. close']) for date in sorted(data['Time Series (Daily)'].keys())]
         return prices
@@ -51,7 +57,7 @@ def hist_volatility(prices):
     return sigma_annualized
 
 #Long Call
-def Long_Call(price, ticker, T): #Binomial Option Model for American Style (Early Exercise)
+def Long_Put(price, ticker, T): #Binomial Option Model for American Style (Early Exercise)
     """
     Calculate the theoretical price of a long call option using the Binomial Option Pricing Model.
     
@@ -63,12 +69,12 @@ def Long_Call(price, ticker, T): #Binomial Option Model for American Style (Earl
     Returns:
     float: Theoretical price of the long call option.
     """
-    S = get_current_price(ticker)  # The Current (Live) price of the stock
+    S = get_current_price(ticker)  # The Current (Live) price of the stock -> float
     K = price  # Option Strike Price
     r = 0.55  # Risk Free Interest Rate (e.g., US Central Bank rate)
 
     # Calculate volatility using historical data
-    prices = get_historical_prices(ticker)
+    prices = get_historical_prices(ticker) # -> list
     sigma = hist_volatility(prices)
 
     # Number of time steps in the binomial model
@@ -130,10 +136,8 @@ def Long_Call(price, ticker, T): #Binomial Option Model for American Style (Earl
     
 #     return call_price
 
-print("Long Call: ")
-print(Long_Call(174, 'aapl', 1/365))
 
-def Long_Put(price, ticker, T):
+def Long_Call(price, ticker, T):
     """
     Calculate the theoretical price of a long put option using the Black-Scholes model.
     
@@ -160,5 +164,3 @@ def Long_Put(price, ticker, T):
     
     return put_price
 
-print("Long Put: ")
-print(Long_Put(174, 'aapl', 1/365))

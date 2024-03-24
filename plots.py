@@ -6,6 +6,36 @@ from datetime import datetime, timedelta
 
 from typing import Optional
 
+from Math import Long_Call, Long_Put
+
+def transcribe_option(option_string):
+    '''
+    Takes an option code (e.g. AAPL071222C00122500) and outputs as plain text (e.g. )
+    '''
+    t = 0
+    for i, char in enumerate(option_string):
+        if char.isdigit():
+            t = i
+            break
+    ticker_symbol = option_string[:t]
+    expiry_date = option_string[t:t+7]  # YYMMDD
+    strike_price = int(option_string[-8:])  # First five digits represent whole number
+    strike_price_decimal = int(option_string[-3:])  # Last three digits represent decimals
+    strike_price /= 1000  # Convert decimal part to proper fraction
+    option_type = "Call" if option_string[t+6] == 'C' else "Put"
+
+    month_names = {
+        "01": "January", "02": "February", "03": "March", "04": "April",
+        "05": "May", "06": "June", "07": "July", "08": "August",
+        "09": "September", "10": "October", "11": "November", "12": "December"
+    }
+    month = month_names[expiry_date[2:4]]
+    # Convert YYMMDD to a readable date format
+    expiry_date_readable = f"20{expiry_date[:2]} {month} {expiry_date[4:6]}"
+    
+    return f"{expiry_date_readable} ${strike_price:.3f} {option_type} on {ticker_symbol}"
+    
+
 def generate_dates(expiration_date):
     # Convert the expiration date string to a datetime object
     date_obj = datetime.strptime(expiration_date, '%B %d, %Y')
@@ -36,14 +66,6 @@ def generate_dates(expiration_date):
     # previous_dates_list = previous_dates_list.reverse()
     return dates_generated_list
 
-def long_call(value,time):
-    value + 10
-    return value
-
-def long_put(value,time):
-    value * 3
-    return value
-
 def make_heatmap(contract, ticker, strategy, stock_price:float, exp, stock_range: Optional[tuple] = None):
     '''
     Calculates options profit for dates up to expiry as a heatmap. Returns a plt.axes object. 
@@ -51,10 +73,11 @@ def make_heatmap(contract, ticker, strategy, stock_price:float, exp, stock_range
     dates_range = generate_dates(exp)
     
     STRATEGIES = {
-        'Long Call': long_call,
-        'Long Put': long_put
+        'Long Call': Long_Call,
+        'Long Put': Long_Put
     }
     
+    strike = contract['Strike']
     if stock_range == None:
         upper = stock_price * 1.05
         lower = stock_price * 0.95
@@ -74,7 +97,10 @@ def make_heatmap(contract, ticker, strategy, stock_price:float, exp, stock_range
     for price in stock_range:
         for i,date in enumerate(dates_range):
             # Dummy calculation example: square of the price value
-            value = STRATEGIES[strategy](price,(i+1)/365)
+            dte = (len(dates_range)-(i+1))/365
+            if dte == 0:
+                dte = (1/365)
+            value = STRATEGIES[strategy](price,ticker,dte)
             heatmap_data.at[price,date] = float(value)
 
     heatmap_data = heatmap_data.astype(float)
@@ -96,4 +122,3 @@ def make_heatmap(contract, ticker, strategy, stock_price:float, exp, stock_range
     ax.xaxis.tick_top()
     plt.xticks(rotation=45)
     return fig, ax
-
