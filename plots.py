@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime, timedelta
 
-
+from typing import Optional
 
 def generate_dates(expiration_date):
     # Convert the expiration date string to a datetime object
@@ -36,14 +36,20 @@ def generate_dates(expiration_date):
     # previous_dates_list = previous_dates_list.reverse()
     return dates_generated_list
 
+def long_call(value,time):
+    value + 10
+    return value
 
+def long_put(value,time):
+    value * 3
+    return value
 
 def make_heatmap(contract, ticker, strategy, stock_price:float, exp, stock_range: Optional[tuple] = None):
     '''
     Calculates options profit for dates up to expiry as a heatmap. Returns a plt.axes object. 
     '''
     dates_range = generate_dates(exp)
-
+    
     STRATEGIES = {
         'Long Call': long_call,
         'Long Put': long_put
@@ -71,8 +77,6 @@ def make_heatmap(contract, ticker, strategy, stock_price:float, exp, stock_range
             value = STRATEGIES[strategy](price,(i+1)/365)
             heatmap_data.at[price,date] = float(value)
 
-    num_x = len(stock_range)
-    num_y = len(dates_list)
     heatmap_data = heatmap_data.astype(float)
     #heatmap_data.astype(float)
     
