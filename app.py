@@ -2,17 +2,15 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-
+from st_aggrid import GridOptionsBuilder, AgGrid, GridUpdateMode, DataReturnMode, JsCode
 import requests, os
-# from gwpy.timeseries import TimeSeries
-# from gwosc.locate import get_urls
-# from gwosc import datasets
-# from gwosc.api import fetch_event_json
 
 from yahoo_fin import options
 from yahoo_fin import stock_info
 from copy import deepcopy
 import base64
+import plots as plot
+import datetime
 
 import plots as plot
 import datetime
@@ -85,6 +83,7 @@ if(strategy != "None"):
     st.subheader("Options List:")
     return_value = AgGrid(df, gridOptions=grid_options)
 
+<<<<<<< HEAD
     # st.subheader("Grid Selection:")
     # st.write(return_value['selected_rows'])
     # st.subheader("DEBUG Values")
@@ -94,3 +93,13 @@ if(strategy != "None"):
 
     heatmap = plot.make_heatmap(contract=return_value['selected_rows'][0],ticker=ticker,strategy=strategy, stock_price=return_value['selected_rows'][0].get("Strike"),exp=expDate) 
     st.write(heatmap[0])
+=======
+    st.subheader("Grid Selection:")
+    st.write(return_value['selected_rows'])
+    st.subheader("DEBUG Values")
+    st.write(return_value['selected_rows'][0])
+    st.write(return_value['selected_rows'][0].get("Strike"))
+
+    heatmap = plot.make_heatmap(return_value['selected_rows'][0],ticker,strategy, return_value['selected_rows'][0].get("Strike"),expDate) 
+    st.write(heatmap[0])
+>>>>>>> 33cc06348e4b28d2c165bba57cc089a52bb989a1

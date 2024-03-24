@@ -3,6 +3,24 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime, timedelta
+from typing import Optional
+from st_aggrid import GridOptionsBuilder, AgGrid, GridUpdateMode, DataReturnMode, JsCode
+
+def convert_dates(dates: list):
+    '''
+    Converts list of dates returned by 
+    '''
+    converted_dates = []
+    for date_str in dates:
+        # Convert the date string to a datetime object
+        date_obj = datetime.strptime(date_str, '%B %d, %Y')
+        # Convert the datetime object to the desired format
+        converted_date = date_obj.strftime('%Y-%m-%d')
+        converted_dates.append(converted_date)
+
+    return converted_dates
+
+
 
 from typing import Optional
 
@@ -102,6 +120,8 @@ def make_heatmap(contract, ticker, strategy, stock_price:float, exp, stock_range
                 dte = (1/365)
             value = STRATEGIES[strategy](price,ticker,dte)
             heatmap_data.at[price,date] = float(value)
+            #print(type(heatmap_data.at[price,date])) # all floats as of here
+
 
     heatmap_data = heatmap_data.astype(float)
     #heatmap_data.astype(float)
