@@ -3,7 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime, timedelta
-
+from typing import Optional
+from st_aggrid import GridOptionsBuilder, AgGrid, GridUpdateMode, DataReturnMode, JsCode
 
 def convert_dates(dates: list):
     '''
@@ -82,9 +83,7 @@ def make_heatmap(contract, stock_price:float, exp, stock_range: Optional[tuple] 
             value = price + 10
             heatmap_data.at[price,date] = float(value)
             #print(type(heatmap_data.at[price,date])) # all floats as of here
-    
-    num_x = len(stock_range)
-    num_y = len(dates_list)
+
     heatmap_data = heatmap_data.astype(float)
     #heatmap_data.astype(float)
     

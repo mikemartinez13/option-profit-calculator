@@ -2,17 +2,14 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-
+from st_aggrid import GridOptionsBuilder, AgGrid, GridUpdateMode, DataReturnMode, JsCode
 import requests, os
-# from gwpy.timeseries import TimeSeries
-# from gwosc.locate import get_urls
-# from gwosc import datasets
-# from gwosc.api import fetch_event_json
 
 from yahoo_fin import options
 from yahoo_fin import stock_info
 from copy import deepcopy
 import base64
+import plots as plot
 
 # from helper import make_audio_file
 
@@ -64,5 +61,18 @@ st.write(dates)
 expDate = st.sidebar.selectbox('Choose an expiration date', dates)
 
 strategy = st.radio("Which option chain are you looking for?", ["Long Call", "Long Put","None"], index=None)
+df = ""
 if(strategy != "None"):
-    st.write(get_options_chain(ticker, strategy, expDate))
+    df = get_options_chain(ticker, strategy, expDate)
+    gb = GridOptionsBuilder.from_dataframe(df)
+    #gb.configure_pagination(enabled=True)
+    gb.configure_selection('single', use_checkbox=False, groupSelectsChildren=False, groupSelectsFiltered=False)
+    grid_options = gb.build()
+
+    st.subheader("Options List:")
+    return_value = AgGrid(df, gridOptions=grid_options)
+
+    st.subheader("Grid Selection:")
+    st.write(return_value['selected_rows'])
+
+    #st.write(plot.make_heatmap())
