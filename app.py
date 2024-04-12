@@ -83,7 +83,6 @@ if(strategy != "None"):
     st.subheader("Options List:")
     return_value = AgGrid(df, gridOptions=grid_options)
 
-<<<<<<< HEAD
     # st.subheader("Grid Selection:")
     # st.write(return_value['selected_rows'])
     # st.subheader("DEBUG Values")
@@ -93,13 +92,3 @@ if(strategy != "None"):
 
     heatmap = plot.make_heatmap(contract=return_value['selected_rows'][0],ticker=ticker,strategy=strategy, stock_price=return_value['selected_rows'][0].get("Strike"),exp=expDate) 
     st.write(heatmap[0])
-=======
-    st.subheader("Grid Selection:")
-    st.write(return_value['selected_rows'])
-    st.subheader("DEBUG Values")
-    st.write(return_value['selected_rows'][0])
-    st.write(return_value['selected_rows'][0].get("Strike"))
-
-    heatmap = plot.make_heatmap(return_value['selected_rows'][0],ticker,strategy, return_value['selected_rows'][0].get("Strike"),expDate) 
-    st.write(heatmap[0])
->>>>>>> 33cc06348e4b28d2c165bba57cc089a52bb989a1
