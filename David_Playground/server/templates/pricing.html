@@ -1,0 +1,32 @@
+<!-- templates/pricing.html -->
+{% extends "base.html" %}
+
+{% block title %}Pricing Matrix{% endblock %} <!-- Page-specific title -->
+
+{% block content %}
+    <div class="container mt-5">
+        <h2>Option Pricing Matrix</h2>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Strike Price</th>
+                    <th>Call Price</th>
+                    <th>Put Price</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>80</td>
+                    <td>25.35</td>
+                    <td>1.90</td>
+                </tr>
+                <tr>
+                    <td>90</td>
+                    <td>17.81</td>
+                    <td>3.51</td>
+                </tr>
+                <!-- Additional rows can be dynamically generated -->
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

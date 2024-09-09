@@ -1,0 +1,51 @@
+<!-- templates/form_page.html -->
+{% extends "base.html" %}
+
+{% block title %}Option Pricing Calculator{% endblock %} <!-- Page-specific title -->
+
+{% block content %}
+    <div class="container mt-5">
+        <h2>Black-Scholes Option Calculator</h2>
+        <form action="/calculator" method="POST">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="stock_price">Stock Price</label>
+                        <input type="text" class="form-control" id="stock_price" name="stock_price" placeholder="Enter stock price">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="strike_price">Strike Price</label>
+                        <input type="text" class="form-control" id="strike_price" name="strike_price" placeholder="Enter strike price">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="time_to_maturity">Time to Maturity</label>
+                        <input type="text" class="form-control" id="time_to_maturity" name="time_to_maturity" placeholder="Enter time to maturity">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="risk_free_rate">Risk Free Rate</label>
+                        <input type="text" class="form-control" id="risk_free_rate" name="risk_free_rate" placeholder="Enter risk-free rate">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="volatility">volatility</label>
+                        <input type="text" class="form-control" id="volatility" name="volatility" placeholder="Enter volatility">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="option_type">option_type</label>
+                        <input type="text" class="form-control" id="option_type" name="option_type" placeholder="Enter Option Type (Call/Put)">
+                    </div>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary mt-3">Calculate</button>
+        </form>
+    </div>
+{% endblock %}
