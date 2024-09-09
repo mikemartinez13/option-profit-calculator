@@ -1,0 +1,8 @@
+Pandas
+Matplotlib
+Statsmodels
+Numpy v2.0.1 #more recent ones conflict w/ statsmodels
+Scipy
+Seaborn
+Json
+Requests
