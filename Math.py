@@ -4,6 +4,9 @@ import numpy as np
 from scipy.stats import norm
 import pandas as pd
 
+import logging
+import os
+
 #Alpha Vantage Stock API Key: 42IHQ5T9TB4C28H0
 API_KEY = '0VPIPX9KB59DLY4H'
 
@@ -32,7 +35,7 @@ def get_historical_prices(symbol, outputsize='compact'):
     else:
         return None
 
-#Calculate Sigma
+#Calculate Sigma    
 
 def hist_volatility(prices):
     """
@@ -53,7 +56,8 @@ def hist_volatility(prices):
     
     # Annualize volatility for 1 year
     sigma_annualized = sigma * np.sqrt(252)  # Assuming 252 trading days in a year
-    
+    # Since volatility only accumulates during the trading days, we annualize by sqrt(252)
+
     return sigma_annualized
 
 #Long Call

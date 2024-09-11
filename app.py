@@ -17,6 +17,9 @@ import datetime
 
 from st_aggrid import GridOptionsBuilder, AgGrid, GridUpdateMode, DataReturnMode, JsCode
 
+import schwabdev
+
+from typing import List
 # from helper import make_audio_file
 
 # Use the non-interactive Agg backend, which is recommended as a
@@ -32,8 +35,13 @@ mpl.use("agg")
 # Moreover, we will guard all operations on the figure instances by the
 # class-level lock in the Agg backend.
 ##############################################################################
-from matplotlib.backends.backend_agg import RendererAgg
-_lock = RendererAgg.lock
+# from matplotlib.backends.backend_agg import RendererAgg
+# _lock = RendererAgg.lock
+
+appKey = 'Your app key here'
+appSecret = 'Your secret key here'
+
+client = schwabdev.Client(app_key=appKey, app_secret=appSecret)
 
 # -- Set page config
 apptitle = 'Option Profit Calculator'
@@ -44,24 +52,35 @@ def get_options_chain(ticker, strategy: str, expiration: str):
     '''
     chain = pd.DataFrame()
     if strategy == "Long Call":
-        chain = options.get_calls(ticker.lower(),expiration)
+        chain = client.option_chains(ticker, 'CALL', toDate=expiration, fromDate=expiration).json()
     elif strategy == "Long Put":
-        chain = options.get_puts(ticker.lower(),expiration)
+        chain = client.option_chains(ticker, 'PUT', toDate=expiration, fromDate=expiration).json()
 
-    chain['Name'] = chain['Contract Name'].apply(plot.transcribe_option)
-    cols = chain.columns.tolist()
-    cols = cols[-1:] + cols[:-1]
-    chain = chain[cols]
+    # chain['Name'] = chain['Contract Name'].apply(plot.transcribe_option)
+    # cols = chain.columns.tolist()
+    # cols = cols[-1:] + cols[:-1]
+    # chain = chain[cols]
 
     return chain
 
+def get_options_date(ticker: str) -> List[str]:
+    try:
+        dates_json = client.option_expiration_chain(ticker).json()
+        dates = pd.json_normalize(dates_json['expirationList'], sep='_')['expirationDate'].to_list()
+        return dates
+    except KeyError:
+        st.error('Chosen ticker is invalid, please try with a different one.')
+        return []
+    
 st.set_page_config(page_title=apptitle, page_icon="📈")
 # Title the app
 st.title('Options Calculator')
 
 st.sidebar.markdown("## Stock Ticker")
 ticker = st.sidebar.text_input('Input desired stock ticker', '')
-dates = options.get_expiration_dates(ticker)
+
+#dates = options.get_expiration_dates(ticker)
+dates = get_options_date(ticker)
 
 if len(dates)==0:
     st.error('Chosen ticker is invalid, please try again')
@@ -75,6 +94,8 @@ strategy = st.radio("Which option chain are you looking for?", ["Long Call", "Lo
 df = ""
 if(strategy != "None"):
     df = get_options_chain(ticker, strategy, expDate)
+    st.write(str(df))
+    exit()
     gb = GridOptionsBuilder.from_dataframe(df)
     #gb.configure_pagination(enabled=True)
     gb.configure_selection('single', use_checkbox=False, groupSelectsChildren=False, groupSelectsFiltered=False)
