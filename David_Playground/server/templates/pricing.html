@@ -1,11 +1,11 @@
-<!-- templates/pricing.html -->
+<!-- templates/pricing_result.html -->
 {% extends "base.html" %}
 
-{% block title %}Pricing Matrix{% endblock %} <!-- Page-specific title -->
+{% block title %}Option Pricing for {{ stock_ticker }}{% endblock %}
 
 {% block content %}
     <div class="container mt-5">
-        <h2>Option Pricing Matrix</h2>
+        <h2>Option Pricing for {{ stock_ticker }} (Stock Price: {{ stock_price }})</h2>
         <table class="table table-bordered">
             <thead>
                 <tr>
@@ -15,17 +15,13 @@
                 </tr>
             </thead>
             <tbody>
+                {% for row in pricing_matrix %}
                 <tr>
-                    <td>80</td>
-                    <td>25.35</td>
-                    <td>1.90</td>
+                    <td>{{ row.strike_price }}</td>
+                    <td>{{ row.call_price }}</td>
+                    <td>{{ row.put_price }}</td>
                 </tr>
-                <tr>
-                    <td>90</td>
-                    <td>17.81</td>
-                    <td>3.51</td>
-                </tr>
-                <!-- Additional rows can be dynamically generated -->
+                {% endfor %}
             </tbody>
         </table>
     </div>
