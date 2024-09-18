@@ -26,7 +26,7 @@ def initialize_app():
     # If no tokens exist, run the setup script to get them
     if not tokens_exist or not os.getenv('SCHWAB_ACCESS_TOKEN') or not os.getenv('SCHWAB_REFRESH_TOKEN'):
         run_setup()  # Trigger the setup process (OAuth login flow)
-    
+        
     # Start background refresh process
     run_background_token_refresh()
 
