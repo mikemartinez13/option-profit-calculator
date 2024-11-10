@@ -2,13 +2,15 @@ import requests
 import base64
 import urllib.parse
 import json
-
+import os
+from dotenv import load_dotenv
 # taken from Tyler Bowers on YouTube
+load_dotenv()
 
-appKey = 'Your app key'
-appSecret = 'Your secret key'
+app_key = os.getenv('APP_KEY')
+secret = os.getenv('SECRET_KEY')
 
-authUrl = f'https://api.schwabapi.com/v1/oauth/authorize?client_id={appKey}&redirect_uri=https://127.0.0.1'
+authUrl = f'https://api.schwabapi.com/v1/oauth/authorize?client_id={app_key}&redirect_uri=https://127.0.0.1'
 
 print(f"Click to authenticate: {authUrl}")
 
@@ -16,7 +18,7 @@ returnedLink = input("Paste the redirect URL here:")
 
 code = f"{returnedLink[returnedLink.index('code=')+5:returnedLink.index('%40')]}@"
 
-headers = {'Authorization': f'Basic {base64.b64encode(bytes(f"{appKey}:{appSecret}", "utf-8")).decode("utf-8")}','Content-Type': 'application/x-www-form-urlencoded'}
+headers = {'Authorization': f'Basic {base64.b64encode(bytes(f"{app_key}:{secret}", "utf-8")).decode("utf-8")}','Content-Type': 'application/x-www-form-urlencoded'}
 
 data = {'grant_type': 'authorization_code', 'code': code, 'redirect_uri': 'https://127.0.0.1'}
 
@@ -51,7 +53,7 @@ def _params_parser(params):
     return params
 
 # Get Market Data for AMZN
-response = requests.get(f'{base_api_url}/marketdata/v1/{urllib.parse.quote("AMZN")}/quotes',
+response = requests.get(f'{base_api_url}/marketdata/v1/{urllib.parse.quote("SPSC")}/quotes',
                             headers={'Authorization': f'Bearer {access_token}'},
                             params=_params_parser({'fields': ["all"]}),
                             timeout=5)

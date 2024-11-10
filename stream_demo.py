@@ -5,15 +5,18 @@ import time
 import json
 import pandas as pd
 
+from dotenv import load_dotenv
+load_dotenv()
 
-appKey = 'Your app key here'
-appSecret = 'Your secret key here'
+app_key = os.getenv('APP_KEY')
+secret = os.getenv('SECRET_KEY')
+
 
 def main():
     # place your app key and app secret in the .env file
     #load_dotenv()  # load environment variables from .env file
 
-    client = schwabdev.Client(appKey, appSecret, 'https://127.0.0.1')
+    client = schwabdev.Client(app_key, secret, 'https://127.0.0.1')
 
     # define a variable for the steamer:
     streamer = client.stream

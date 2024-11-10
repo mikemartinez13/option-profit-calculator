@@ -142,3 +142,56 @@ def make_heatmap(contract, ticker, strategy, stock_price:float, exp, stock_range
     ax.xaxis.tick_top()
     plt.xticks(rotation=45)
     return fig, ax
+
+# Functions to graph possible payoff of options strategies
+
+def long_call(S, K, Price):
+    P = np.maximum(S-K, 0) - Price
+    return P
+
+def short_call(S, K, Price):
+    return -1.0 * long_call(S, K, Price)
+
+def long_put(S, K, Price):
+    P = np.maximum(K-S, 0) - Price
+    return P
+
+def short_put(S, K, Price):
+     return -1.0 * long_put(S, K, Price)
+
+def get_stock_prices(s0):
+    '''
+    s0: current stock price
+    '''
+    lower = s0 * (1 - 0.5) 
+    upper = s0 * (1 + 0.5)
+
+    return np.arange(lower, upper+0.1, 0.1).round(2)
+
+def plot_payoff(stock_series, payoff_series):
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    colors = ['green' if profit >= 0 else 'red' for profit in payoff_series]
+
+    scatter = ax.scatter(stock_series, payoff_series, color=colors, s = 1)
+    ax.axhline(0, color='black', lw=0.5)
+    ax.set_xlabel('Stock Price at Expiration ($)')
+    ax.set_ylabel('Profit ($)')
+
+    # Set title
+    ax.set_title('Option Profit Diagram')
+    
+    ax.grid(True, linestyle='--', alpha=0.7)
+
+    # Tight layout for better spacing
+    fig.tight_layout()
+
+    return fig
+
+
+if __name__ == '__main__':
+    S_current = 418
+    S = get_stock_prices(S_current)
+    P1 = long_call(S, 400, 130)
+    fig = plot_payoff(S, P1)
+    plt.savefig('long_call.png')
