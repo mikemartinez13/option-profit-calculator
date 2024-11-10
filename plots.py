@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime, timedelta
 from typing import Optional
-from st_aggrid import GridOptionsBuilder, AgGrid, GridUpdateMode, DataReturnMode, JsCode
 
 def convert_dates(dates: list):
     '''
@@ -187,6 +186,79 @@ def plot_payoff(stock_series, payoff_series):
     fig.tight_layout()
 
     return fig
+
+class OptionPayoffPlot:
+    '''
+    Class to plot payoff of options strategies.
+
+    Contains, fig, ax, and scat objects.
+    '''
+    __slots__ = ('fig', 
+                 'ax', 
+                 'scat'
+                 )
+    
+    def __init__(self):
+        self.fig, self.ax = plt.subplots(figsize=(10, 6), dpi = 100)
+
+        self.xdata = np.array([])  # Empty array for x data
+        self.ydata = np.array([])  # Empty array for y data
+        
+        self.colors = [] # Empty list for colors
+        self.scat = self.ax.scatter(self.xdata,self.ydata, color = self.colors, s=1)
+
+        self.ax.set_xlim([0, 100])
+        self.ax.set_ylim([-100, 100])
+
+        self.ax.axhline(0, color='black', lw=0.5)
+        self.ax.grid(True, linestyle='--', alpha=0.7)
+
+        self.fig.tight_layout()
+        self.ax.set_xlabel('Stock Price at Expiration ($)')
+        self.ax.set_ylabel('Profit ($)')
+        self.ax.set_title('Strategy Payoff Diagram')
+
+        # self.check_directories()
+        return
+    
+    def add_option(self, option) -> None:
+        '''
+        Adds an option's payoff to the plot
+        '''
+        self.xdata = np.concatenate((self.xdata, stock_series))
+        self.ydata = np.concatenate((self.ydata, payoff_series))
+
+        self.colors = ['green' if profit >= 0 else 'red' for profit in payoff_series]
+        self.scat.set_offsets(np.column_stack(self.xdata, self.ydata)) # set offsets only works with (N, 2) size
+
+        self.ax.set_xlim([min(self.xdata)-1,
+                          max(self.xdata)+1
+                          ])
+        self.ax.set_ylim([min(self.ydata)-1,
+                          max(self.ydata)+1
+                          ])
+
+        return
+    
+    def reset_data(self) -> None:
+        self.xdata = np.array([])
+        self.ydata = np.array([])
+
+        self.scat.set_offsets(np.column_stack(self.xdata, self.ydata))
+
+        self.ax.set_xlim([0, 100])
+        self.ax.set_ylim([-100, 100])
+
+        return
+
+    # def save_plot(self, file_name: str) -> None:
+    #     '''
+    #     Save the currently displayed figure as a .png file.
+    #     '''
+    #     if file_name != '':
+    #         print(f'Saving: {file_name}.png')
+    #         self.fig.savefig(f'{file_name}.png', bbox_inches='tight')
+    #     return
 
 
 if __name__ == '__main__':
