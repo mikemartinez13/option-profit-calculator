@@ -1,7 +1,7 @@
 from PyQt5 import QtWidgets as qtw
 #from option_plotter import OptionProfitCalculator
-from option_chain import OptionChainWindow
-from .. import data_utils as dat
+from src.option_chain import OptionChainWindow
+from utils import data_utils as dat
 
 import sys
 #from portfolio_viewer import PortfolioViewerWindow
@@ -41,7 +41,7 @@ class MainWindow(qtw.QMainWindow):
         # Connect more buttons as needed
 
         # Initialize feature windows
-        data = self.engine.get_option_chain_dict('AAPL')
+        data = self.engine.get_options_chain_dict('AAPL')
 
         self.strategy_builder_window = OptionChainWindow(data)
         # self.portfolio_viewer_window = PortfolioViewerWindow()
@@ -56,7 +56,8 @@ class MainWindow(qtw.QMainWindow):
     #     self.portfolio_viewer_window.show()
 
 if __name__ == '__main__':
-    app = qtw.QApplication([])
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec_())
+    # app = qtw.QApplication([])
+    # window = MainWindow()
+    # window.show()
+    # sys.exit(app.exec_())
+    pass

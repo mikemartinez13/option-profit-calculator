@@ -1,7 +1,7 @@
 from PyQt5 import QtWidgets as qtw
-from .. import plots 
-import custom_components as comp
-from custom_components import configure_button
+from vis import plots 
+import src.custom_components as comp
+from src.custom_components import configure_button
 import matplotlib.pyplot as plt
 
 class OptionProfitCalculator(comp.WindowWithFigureAbove):

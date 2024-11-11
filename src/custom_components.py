@@ -9,7 +9,6 @@ import pandas as pd
 from PyQt5.QtCore import Qt
 
 
-
 class WindowWithVerticalSlots(qtw.QWidget):
     '''
     A window with a title and an empty
@@ -156,8 +155,8 @@ class PandasModel(QtCore.QAbstractTableModel):
     '''
     Directly ported from this StackOverflow post https://stackoverflow.com/questions/44603119/how-to-display-a-pandas-data-frame-with-pyqt5-pyside2, aided by ChatGPT to update outdated methods. 
     '''
-    def __init__(self, data: pd.DataFrame):
-        super().__init__(self)
+    def __init__(self, data: pd.DataFrame, parent=None):
+        super().__init__(parent)
         self._data = data.copy()
 
     def rowCount(self, parent=None):

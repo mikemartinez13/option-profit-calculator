@@ -4,8 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from st_aggrid import GridOptionsBuilder, AgGrid, GridUpdateMode, DataReturnMode, JsCode
 
-from plots import long_call, long_put, short_call, short_put, plot_payoff, get_stock_prices
-from data_utils import get_options_chain, get_options_date, get_price
+from vis.plots import long_call, long_put, short_call, short_put, plot_payoff, get_stock_prices
+from utils.data_utils import get_options_chain, get_options_date, get_price
 
 # from helper import make_audio_file
 

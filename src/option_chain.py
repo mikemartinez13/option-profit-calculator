@@ -11,9 +11,10 @@ from PyQt5.QtWidgets import (
     QMessageBox
 )
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
+from PyQt5.QtCore import QModelIndex
 import pandas as pd
 
-from custom_components import PandasModel
+from src.custom_components import PandasModel
 
 class OptionChainWindow(qtw.QWidget):
     '''
@@ -25,6 +26,8 @@ class OptionChainWindow(qtw.QWidget):
         self.setWindowTitle("Options Chains by Expiration Date")
         self.setGeometry(200, 200, 1000, 600)
 
+        self.option_data = options_data
+
         main_layout = qtw.QVBoxLayout()
         self.setLayout(main_layout)
 
@@ -32,9 +35,9 @@ class OptionChainWindow(qtw.QWidget):
         main_layout.addWidget(self.tabs)
 
         for expiration_date, df in options_data.items():
-            self.add_expiration_tab(expiration_date, df)
+            self.add_tab(expiration_date, df)
 
-    def add_expiration_tab(self, expiration_date: str, df: pd.DataFrame):
+    def add_tab(self, expiration_date: str, df: pd.DataFrame):
         '''
         Adds a new tab for a given expiration date with its options chain table.
 
@@ -63,8 +66,48 @@ class OptionChainWindow(qtw.QWidget):
         table_view.horizontalHeader().setStretchLastSection(True)
         table_view.horizontalHeader().setSectionResizeMode(qtw.QHeaderView.Stretch)
 
+        table_view.doubleClicked.connect(self.retrieve_option)
+
         # Add the table to the tab layout
         tab_layout.addWidget(table_view)
 
         # Add the tab to the QTabWidget
-        self.tabs.addTab(tab, expiration_date)
+        tab_index = self.tabs.addTab(tab, expiration_date)
+        self.tabs.tabBar().setTabData(tab_index, expiration_date) # allows us to retrieve data for a certain tab
+
+    def retrieve_option(self, index: QModelIndex):
+        '''
+        Slot to handle double-click events on the table view.
+        '''
+        if not index.isValid():
+            return
+        
+        # Get the current widget (tab)
+        current_tab = self.tabs.currentIndex()
+        expiration_date = self.tabs.tabBar().tabData(current_tab)
+        # if not isinstance(current_tab, OptionTab):
+        #     QMessageBox.warning(
+        #         self,
+        #         "Unknown Tab",
+        #         "Active tab does not contain option data.",
+        #         QMessageBox.Ok
+        #     )
+        #     return
+
+        df = self.option_data.get(expiration_date, None)
+
+        if df is None:
+            QMessageBox.warning(
+                self,
+                "No Data",
+                f"No data found for expiration date: {expiration_date}",
+                QMessageBox.Ok
+            )
+            return
+
+        row = index.row()
+
+        option_data = df.iloc[row].to_dict()
+
+        print(option_data)
+
