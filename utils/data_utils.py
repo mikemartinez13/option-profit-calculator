@@ -22,18 +22,24 @@ class SchwabData:
         return
     
     def get_options_chain_dict(self, ticker:str) -> dict:
-        opt_dict = defaultdict(list)
-
+        opt_dict = {'calls':defaultdict(list), 
+                    'puts':defaultdict(list)}
+        #q: Defaultdict of dict then of lists?
+        #a: 
         json_data = self.client.option_chains(ticker).json()
 
-        for expdate in json_data['callExpDateMap']:
-            records = []
-            for k in json_data['callExpDateMap'][expdate]:
-                data = json_data['callExpDateMap'][expdate][k][0]
-                records.append(data)
-            df=pd.DataFrame(records)
-            opt_dict[convert_date(expdate)] = filter_chain(df)
-        
+        if 'errors' in json_data.keys():
+            raise ValueError('Invalid ticker symbol. Please try again.')
+        else:
+            for type in ['callExpDateMap', 'putExpDateMap']:
+                for expdate in json_data[type]:
+                    records = []
+                    for k in json_data[type][expdate]:
+                        data = json_data[type][expdate][k][0]
+                        records.append(data)
+                    df=pd.DataFrame(records)
+                    opt_dict[type.split('ExpDateMap')[0]+'s'][convert_date(expdate)] = filter_chain(df)
+
         return opt_dict
     
     def get_price(self, ticker:str):
@@ -124,4 +130,4 @@ if __name__ == '__main__':
     #print(get_options_date('AAPL'))
     myclient = SchwabData()
     aapldata = myclient.get_options_chain_dict('AAPL')
-    print(aapldata)
+    print(aapldata['puts'])

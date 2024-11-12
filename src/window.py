@@ -40,10 +40,9 @@ class MainWindow(qtw.QMainWindow):
         #self.portfolio_button.clicked.connect(self.open_portfolio_viewer)
         # Connect more buttons as needed
 
-        # Initialize feature windows
-        data = self.engine.get_options_chain_dict('AAPL')
-
-        self.strategy_builder_window = OptionChainWindow(data)
+        # Initialize Strategy Builder window
+        self.strategy_builder_window = OptionChainWindow()
+        
         # self.portfolio_viewer_window = PortfolioViewerWindow()
         # Initialize more feature windows as needed
         
