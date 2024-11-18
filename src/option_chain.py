@@ -15,9 +15,14 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
 from PyQt5.QtCore import QModelIndex
 from PyQt5.QtCore import Qt
+
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 import pandas as pd
 from src.custom_components import configure_button
 from utils.data_utils import SchwabData
+from vis.plots import OptionPayoffPlot
+
+import json
 
 from src.custom_components import PandasModel
 
@@ -26,21 +31,41 @@ class OptionChainWindow(qtw.QWidget):
     A window that contains multiple tabs, each representing an expiration date.
     Each tab contains a table displaying the options chain for that expiration date.
     '''
-    def __init__(self, parent=None):
+    def __init__(self, data = None, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Options Chains by Expiration Date")
-        self.setGeometry(200, 200, 1000, 600)
+        self.setGeometry(200, 200, 1400, 600)
 
         self.engine = SchwabData()
+        self.display = OptionPayoffPlot()
+
+        self.ticker = None
 
         # Toggle state
         self.show_calls = True
 
         self.table_views = []
 
-        main_layout = qtw.QVBoxLayout()
+        main_layout = qtw.QHBoxLayout()
         self.setLayout(main_layout)
 
+        self.configure_left_layout(main_layout)
+
+        self.tabs = QTabWidget()
+        main_layout.addWidget(self.tabs, stretch = 2)
+
+        self.configure_figure(main_layout)
+
+        self.show_no_data_message()
+
+        print("Show calls is",self.show_calls)
+
+        # expiration_dates = self.calls_data.keys()
+
+        # for expdate in expiration_dates:
+        #     self.add_tab(expdate, self.calls_data[expdate], self.puts_data[expdate])
+
+    def configure_left_layout(self, layout: QVBoxLayout):
         left_layout = qtw.QVBoxLayout()
 
         # Add a toggle button to view either calls or puts
@@ -52,8 +77,6 @@ class OptionChainWindow(qtw.QWidget):
                          )
         
         left_layout.addWidget(self.toggle_button)
-
-        main_layout.addLayout(left_layout, stretch = 1)
 
         # Add a ticker input field
         ticker_layout = QHBoxLayout()
@@ -73,15 +96,79 @@ class OptionChainWindow(qtw.QWidget):
         left_layout.addLayout(ticker_layout)
         left_layout.addWidget(self.enter_ticker)
 
-        self.tabs = QTabWidget()
-        main_layout.addWidget(self.tabs)
+        layout.addLayout(left_layout, stretch = 0)
 
-        self.show_no_data_message()
+    def configure_figure(self, layout: QVBoxLayout):
+        #q: How do I add a figure to the right layout?
+        right_layout = qtw.QVBoxLayout()
+        self.canvas = FigureCanvasQTAgg(self.display.fig)
 
-        # expiration_dates = self.calls_data.keys()
+        self.option_description = QLabel("No option selected.")
 
-        # for expdate in expiration_dates:
-        #     self.add_tab(expdate, self.calls_data[expdate], self.puts_data[expdate])
+        self.long_button = QPushButton()
+        self.short_button = QPushButton()
+        self.reset_button = QPushButton()
+
+        configure_button(self.long_button,
+                            text="Add Long to Plot (Buy)",
+                            command=self.add_long
+                        )
+        configure_button(self.short_button,
+                            text="Add Short to Plot (Sell)",
+                            command=self.add_short
+                        )
+        configure_button(self.reset_button,
+                            text="Reset Plot",
+                            command=self.reset_plot
+                        )
+        
+        right_layout.addWidget(self.canvas)
+        right_layout.addWidget(self.option_description)
+        right_layout.addWidget(self.long_button)
+        right_layout.addWidget(self.short_button)
+        right_layout.addWidget(self.reset_button)
+        
+        layout.addLayout(right_layout, stretch = 1)
+
+    # def configure_demo(self, layout: QVBoxLayout):
+    #     left_layout = qtw.QVBoxLayout()
+
+    #     # Add a toggle button to view either calls or puts
+    #     self.toggle_button = QPushButton()
+
+    #     configure_button(self.toggle_button, 
+    #                      text="Toggle Calls/Puts",
+    #                      command=self.toggle_calls_puts
+    #                      )
+        
+    #     left_layout.addWidget(self.toggle_button)
+
+    #     # # Add a ticker input field
+    #     # ticker_layout = QHBoxLayout()
+    #     # ticker_label = qtw.QLabel("Ticker:")
+    #     # self.ticker_input = QLineEdit()
+    #     # self.enter_ticker = QPushButton()
+
+    #     # configure_button(self.enter_ticker, 
+    #     #                  text="Enter",
+    #     #                  command=self.get_ticker_data
+    #     #                  )
+        
+    #     # ticker_layout.addWidget(ticker_label)
+    #     # ticker_layout.addWidget(self.ticker_input)
+
+    #     # # Add to the left layout
+    #     # left_layout.addLayout(ticker_layout)
+    #     left_layout.addWidget(self.enter_ticker)
+
+    #     layout.addLayout(left_layout, stretch = 0)
+
+    #     self.configure_figure(layout)
+
+    # def read_demo_data(self, filepath:str = 'data/demo_data.json') -> dict:
+    #     with open('data/demo_data.json', 'r') as file:
+    #         data = json.load(file)
+    #     return data
 
     def show_no_data_message(self):
         '''
@@ -132,7 +219,7 @@ class OptionChainWindow(qtw.QWidget):
         table_view.horizontalHeader().setStretchLastSection(True)
         table_view.horizontalHeader().setSectionResizeMode(qtw.QHeaderView.Stretch)
 
-        table_view.doubleClicked.connect(self.retrieve_option)
+        table_view.clicked.connect(self.retrieve_option)
 
         # Add the table to the tab layout
         tab_layout.addWidget(table_view)
@@ -150,7 +237,7 @@ class OptionChainWindow(qtw.QWidget):
 
     def retrieve_option(self, index: QModelIndex):
         '''
-        Slot to handle double-click events on the table view.
+        Slot to handle click events on the table view.
         '''
         if not index.isValid():
             return
@@ -167,7 +254,10 @@ class OptionChainWindow(qtw.QWidget):
         #     )
         #     return
 
-        df = self.option_data.get(expiration_date, None)
+        if self.show_calls:
+            df = self.calls_data[expiration_date]
+        else:
+            df = self.puts_data[expiration_date]
 
         if df is None:
             QMessageBox.warning(
@@ -180,9 +270,11 @@ class OptionChainWindow(qtw.QWidget):
 
         row = index.row()
 
-        option_data = df.iloc[row].to_dict()
+        self.current_option = df.iloc[row].to_dict() # make attribute so other functions can access
+        self.type = "call" if self.show_calls else "put"
 
-        print(option_data)
+        self.option_description.setText("{1} {0} at $K={2}$, bid of {3}, ask of {4}, expiring {5}."\
+                                        .format(self.type, self.ticker, self.current_option['Strike'], self.current_option['Bid'], self.current_option['Ask'], expiration_date))
 
     def toggle_calls_puts(self):
         '''
@@ -194,6 +286,8 @@ class OptionChainWindow(qtw.QWidget):
             self.toggle_button.setText("View Puts")
         else:
             self.toggle_button.setText("View Calls")
+        
+        print("Show calls is",self.show_calls)
         
         for tab_info in self.table_views:
             table_view = tab_info['table_view']
@@ -211,10 +305,10 @@ class OptionChainWindow(qtw.QWidget):
             tab_info['current_model'] = new_model
 
     def get_ticker_data(self):
-        ticker = self.ticker_input.text().upper()
+        self.ticker = self.ticker_input.text().upper()
         
         try:
-            data = self.engine.get_options_chain_dict(ticker)
+            data = self.engine.get_options_chain_dict(self.ticker)
         except ValueError as e:
             QMessageBox.warning(
                 self,
@@ -238,3 +332,30 @@ class OptionChainWindow(qtw.QWidget):
             self.add_tab(expdate, self.calls_data[expdate], self.puts_data[expdate])
 
         self.ticker_input.clear()
+
+    def add_long(self):
+        '''
+        Adds a long option to the plot.
+        '''
+        self.display.add_option(option=self.current_option, 
+                                opt_type=self.type, 
+                                buy=True, 
+                                s0=self.engine.get_price(ticker=self.ticker)
+                                )
+
+    def add_short(self):
+        '''
+        Adds a short option to the plot.
+        '''
+        self.display.add_option(option=self.current_option, 
+                                opt_type=self.type, 
+                                buy=False, 
+                                s0=self.engine.get_price(ticker=self.ticker)
+                                )
+    
+    def reset_plot(self):
+        '''
+        Resets the plot to its initial state.
+        '''
+        self.display.reset_data()
+        self.option_description.setText("No option selected.")

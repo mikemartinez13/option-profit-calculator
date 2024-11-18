@@ -102,7 +102,7 @@ def get_stock_prices(s0):
     lower = s0 * (1 - 0.5) 
     upper = s0 * (1 + 0.5)
 
-    return np.arange(lower, upper+0.1, 0.1).round(2)
+    return np.linspace(lower, upper, num=1000).round(2)
 
 def plot_payoff(stock_series, payoff_series):
 
@@ -130,22 +130,24 @@ class OptionPayoffPlot:
 
     Contains, fig, ax, and scat objects.
     '''
-    __slots__ = ('fig', 
-                 'ax', 
-                 'scat'
-                 )
-    
-    def __init__(self, s0: float):
+    __slots__ = ('fig',
+                  'ax', 
+                  'scat', 
+                  'xdata', 
+                  'ydata', 
+                  'colors')
+
+    def __init__(self):
         self.fig, self.ax = plt.subplots(figsize=(10, 6), dpi = 100)
 
-        self.xdata = np.array(get_stock_prices(s0))  # Empty array for x data
-        self.ydata = np.array([])  # Empty array for y data
+        self.xdata = get_stock_prices(100)  # Empty array for x data
+        self.ydata = np.zeros_like(self.xdata)  # Empty array for y data
         
         self.colors = [] # Empty list for colors
         self.scat = self.ax.scatter(self.xdata,self.ydata, color = self.colors, s=1)
 
         self.ax.set_xlim([0, 100])
-        self.ax.set_ylim([-100, 100])
+        self.ax.set_ylim([-50, 50])
 
         self.ax.axhline(0, color='black', lw=0.5)
         self.ax.grid(True, linestyle='--', alpha=0.7)
@@ -155,48 +157,66 @@ class OptionPayoffPlot:
         self.ax.set_ylabel('Profit ($)')
         self.ax.set_title('Strategy Payoff Diagram')
 
+        self.ax.set_aspect('equal', adjustable='box')
+
         # self.check_directories()
         return
     
-    def add_option(self, option: dict, buy: bool, s0: float) -> None:
+    def add_option(self, option: dict, opt_type:str, buy: bool, s0: float) -> None:
         '''
         Adds an option's payoff to the plot
         '''
-        np.array(get_stock_prices(s0))
 
-        if option['Description'][0] == 'C':
+        self.xdata = get_stock_prices(s0)
+
+        if opt_type == 'call':
             if buy:
                 payoff_series = long_call(self.xdata, option['Strike'], option['Ask'])
             else:
                 payoff_series = short_call(self.xdata, option['Strike'], option['Ask'])
-        elif option['Description'][0] == 'P':
+        elif opt_type == 'put':
             if buy:
                 payoff_series = long_put(self.xdata, option['Strike'], option['Ask'])
             else:
                 payoff_series = short_put(self.xdata, option['Strike'], option['Ask'])
 
-        self.ydata = np.concatenate((self.ydata, payoff_series))
+        self.ydata += payoff_series
 
-        self.colors = ['green' if profit >= 0 else 'red' for profit in payoff_series]
-        self.scat.set_offsets(np.column_stack(self.xdata, self.ydata)) # set offsets only works with (N, 2) size
+        self.colors = ['green' if profit >= 0 else 'red' for profit in self.ydata]
+        self.scat.set_offsets(np.column_stack((self.xdata, self.ydata))) # set offsets only works with (N, 2) size
+        self.scat.set_color(self.colors)
 
         self.ax.set_xlim([min(self.xdata)-1,
                           max(self.xdata)+1
                           ])
-        self.ax.set_ylim([min(self.ydata)-1,
-                          max(self.ydata)+1
+        
+        x_range = max(self.xdata) - min(self.xdata)
+
+        self.ax.set_ylim([-x_range/2,
+                          x_range/2
                           ])
+
+        # self.ax.set_ylim([min(self.ydata)-1,
+        #                   max(self.ydata)+1
+        #                   ])
+        self.ax.set_aspect('equal', adjustable='box')
+
+        self.fig.canvas.draw_idle()
         
         return
     
     def reset_data(self) -> None:
-        self.xdata = np.array([])
-        self.ydata = np.array([])
+        self.xdata = get_stock_prices(100)  # Empty array for x data
+        self.ydata = np.zeros_like(self.xdata)  # Empty array for y data
 
-        self.scat.set_offsets(np.column_stack(self.xdata, self.ydata))
+        self.colors = [] # Empty list for colors
+        self.scat.set_offsets(np.column_stack((self.xdata, self.ydata)))
+        self.scat.set_color(self.colors)
 
         self.ax.set_xlim([0, 100])
-        self.ax.set_ylim([-100, 100])
+        self.ax.set_ylim([-50, 50])
+        
+        self.ax.set_aspect('equal', adjustable='box')
 
         return
 
