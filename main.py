@@ -14,8 +14,6 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--demo', action='store_true',
                         help='Run demo version of the app for users who do not have an active Schwab Developer account.')
 
-    # parser.add_argument('-r', '--resume', default=None, type=str,
-    #                     help='Path to the .pth model checkpoint to resume training')
     args = parser.parse_args()
 
     main(args.demo)
