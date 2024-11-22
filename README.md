@@ -41,4 +41,4 @@ python main.py
 ```
 In the command line. The first time you run this, Schwab may ask you to sign in and approve connection to your trading account. This window may appear: 
 
-![loginscreen](project-writeup\loginscreen.png)
+![loginscreen](project-writeup/loginscreen.png)
