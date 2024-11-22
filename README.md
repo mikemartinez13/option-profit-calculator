@@ -13,6 +13,10 @@ Next, create a conda environment with the necessary packages using the `options_
 ```
 conda env create --name options-proj --file=options_proj.yml
 ```
+If you use pip, you can use: 
+```
+pip install -r requirements.txt
+```
 Make sure that you have an account setup with [Schwab Developer](https://developer.schwab.com/login). Full instructions for setting up an account can be found in the `project-writeup/writeup.pdf` file. Video instructions can be found on [Tyler Bowers' YouTube](https://www.youtube.com/watch?v=kHbom0KIJwc&ab_channel=TylerBowers). If you do not have a Schwab Developer account, you may still run the app in `demo` mode.
 
 To run the app without Schwab Developer, run:
