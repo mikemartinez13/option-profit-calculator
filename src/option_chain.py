@@ -19,7 +19,7 @@ from PyQt5.QtCore import Qt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 import pandas as pd
 from src.custom_components import configure_button
-from utils.data_utils import SchwabData
+from utils.data_utils import SchwabData, DummyData
 from vis.plots import OptionPayoffPlot
 
 import json
@@ -31,12 +31,16 @@ class OptionChainWindow(qtw.QWidget):
     A window that contains multiple tabs, each representing an expiration date.
     Each tab contains a table displaying the options chain for that expiration date.
     '''
-    def __init__(self, data = None, parent=None):
+    def __init__(self, demo = False, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Options Chains by Expiration Date")
         self.setGeometry(200, 200, 1400, 600)
 
-        self.engine = SchwabData()
+        if demo:
+            self.engine = DummyData()
+        else:
+            self.engine = SchwabData()
+            
         self.display = OptionPayoffPlot()
 
         self.ticker = None
@@ -58,7 +62,7 @@ class OptionChainWindow(qtw.QWidget):
 
         self.show_no_data_message()
 
-        print("Show calls is",self.show_calls)
+        #print("Show calls is",self.show_calls)
 
         # expiration_dates = self.calls_data.keys()
 
@@ -129,46 +133,6 @@ class OptionChainWindow(qtw.QWidget):
         right_layout.addWidget(self.reset_button)
         
         layout.addLayout(right_layout, stretch = 1)
-
-    # def configure_demo(self, layout: QVBoxLayout):
-    #     left_layout = qtw.QVBoxLayout()
-
-    #     # Add a toggle button to view either calls or puts
-    #     self.toggle_button = QPushButton()
-
-    #     configure_button(self.toggle_button, 
-    #                      text="Toggle Calls/Puts",
-    #                      command=self.toggle_calls_puts
-    #                      )
-        
-    #     left_layout.addWidget(self.toggle_button)
-
-    #     # # Add a ticker input field
-    #     # ticker_layout = QHBoxLayout()
-    #     # ticker_label = qtw.QLabel("Ticker:")
-    #     # self.ticker_input = QLineEdit()
-    #     # self.enter_ticker = QPushButton()
-
-    #     # configure_button(self.enter_ticker, 
-    #     #                  text="Enter",
-    #     #                  command=self.get_ticker_data
-    #     #                  )
-        
-    #     # ticker_layout.addWidget(ticker_label)
-    #     # ticker_layout.addWidget(self.ticker_input)
-
-    #     # # Add to the left layout
-    #     # left_layout.addLayout(ticker_layout)
-    #     left_layout.addWidget(self.enter_ticker)
-
-    #     layout.addLayout(left_layout, stretch = 0)
-
-    #     self.configure_figure(layout)
-
-    # def read_demo_data(self, filepath:str = 'data/demo_data.json') -> dict:
-    #     with open('data/demo_data.json', 'r') as file:
-    #         data = json.load(file)
-    #     return data
 
     def show_no_data_message(self):
         '''
@@ -359,3 +323,43 @@ class OptionChainWindow(qtw.QWidget):
         '''
         self.display.reset_data()
         self.option_description.setText("No option selected.")
+
+    # def configure_demo(self, layout: QVBoxLayout):
+    #     left_layout = qtw.QVBoxLayout()
+
+    #     # Add a toggle button to view either calls or puts
+    #     self.toggle_button = QPushButton()
+
+    #     configure_button(self.toggle_button, 
+    #                      text="Toggle Calls/Puts",
+    #                      command=self.toggle_calls_puts
+    #                      )
+        
+    #     left_layout.addWidget(self.toggle_button)
+
+    #     # # Add a ticker input field
+    #     # ticker_layout = QHBoxLayout()
+    #     # ticker_label = qtw.QLabel("Ticker:")
+    #     # self.ticker_input = QLineEdit()
+    #     # self.enter_ticker = QPushButton()
+
+    #     # configure_button(self.enter_ticker, 
+    #     #                  text="Enter",
+    #     #                  command=self.get_ticker_data
+    #     #                  )
+        
+    #     # ticker_layout.addWidget(ticker_label)
+    #     # ticker_layout.addWidget(self.ticker_input)
+
+    #     # # Add to the left layout
+    #     # left_layout.addLayout(ticker_layout)
+    #     left_layout.addWidget(self.enter_ticker)
+
+    #     layout.addLayout(left_layout, stretch = 0)
+
+    #     self.configure_figure(layout)
+
+    # def read_demo_data(self, filepath:str = 'data/demo_data.json') -> dict:
+    #     with open('data/demo_data.json', 'r') as file:
+    #         data = json.load(file)
+    #     return data

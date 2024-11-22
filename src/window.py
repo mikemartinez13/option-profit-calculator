@@ -8,11 +8,11 @@ import sys
 # Import other feature windows as needed
 
 class MainWindow(qtw.QMainWindow):
-    def __init__(self):
+    def __init__(self, demo: bool = False):
         super().__init__()
 
         self.engine = dat.SchwabData()
-
+        self.demo = demo
         self.configure_main_window()
 
 
@@ -41,7 +41,7 @@ class MainWindow(qtw.QMainWindow):
         # Connect more buttons as needed
 
         # Initialize Strategy Builder window
-        self.strategy_builder_window = OptionChainWindow()
+        self.strategy_builder_window = OptionChainWindow(demo=self.demo)
         
         # self.portfolio_viewer_window = PortfolioViewerWindow()
         # Initialize more feature windows as needed

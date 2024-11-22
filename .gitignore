@@ -1,7 +1,6 @@
 *.json
 hold.txt
 *.env*
-midterm-writeup
 *.csv
 __pycache__
 .ipynb_checkpoints
