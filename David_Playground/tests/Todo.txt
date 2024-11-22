@@ -1,0 +1,3 @@
+First-time Setup: Test if the tokens are being refreshed and stored properly by running the app and checking the logs (loguru will help with that).
+Long-running Test: Let the app run for more than 30 minutes and check if the tokens are being refreshed as expected.
+Edge Cases: Test what happens when the token refresh fails (e.g., bad refresh token or expired session).
