@@ -1,4 +1,4 @@
-*.json
+tokens.json
 hold.txt
 *.env*
 *.csv

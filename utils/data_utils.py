@@ -9,6 +9,7 @@ import streamlit as st
 from typing import List
 from collections import defaultdict
 import json
+from pathlib import Path
 
 
 def filter_chain(chain: pd.DataFrame):
@@ -92,9 +93,11 @@ class DummyData:
     def get_options_chain_dict(self, ticker:str) -> dict:
         opt_dict = {'calls':defaultdict(list), 
                     'puts':defaultdict(list)}
-        
+         
         # Only have AAPL data for demo purposes
-        with open('data\\dummy_data\\AAPL.json') as f:
+        cwd = Path.cwd()
+        appl_dummy_path = cwd / 'data' / 'dummy_data' / 'AAPL.json'
+        with open(appl_dummy_path) as f:
             json_data = json.load(f)
             
         for type in ['callExpDateMap', 'putExpDateMap']:
