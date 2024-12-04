@@ -11,8 +11,9 @@ class MainWindow(qtw.QMainWindow):
     def __init__(self, demo: bool = False):
         super().__init__()
 
-        self.engine = dat.SchwabData()
         self.demo = demo
+        #self.engine = dat.SchwabData()
+        
         self.configure_main_window()
 
 
