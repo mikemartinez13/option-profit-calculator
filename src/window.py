@@ -12,10 +12,10 @@ class MainWindow(qtw.QMainWindow):
         super().__init__()
 
         self.demo = demo
-        #self.engine = dat.SchwabData()
         
         self.configure_main_window()
-
+        
+        return
 
     def configure_main_window(self) -> None:
         self.setWindowTitle("Trading Tool Dashboard")
