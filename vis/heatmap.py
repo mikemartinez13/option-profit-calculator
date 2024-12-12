@@ -6,7 +6,11 @@ from typing import Optional
 import random
 
 import matplotlib.pyplot as plt
-import seaborn as sns
+
+from optlib.gbs import american, black_scholes
+
+import PyQt5.QtWidgets as qtw
+import pyqtgraph as pg
 
 def make_heatmap(contract, ticker, strategy, stock_price:float, exp, stock_range: Optional[tuple] = None):
     '''
@@ -68,7 +72,111 @@ def make_heatmap(contract, ticker, strategy, stock_price:float, exp, stock_range
     # return fig, ax
     pass
 
-class Heatmap:
-    def __init__(self):
-        self.fig, self.ax = plt.subplots(figsize=(8,5))
+class Heatmap(qtw.QWidget):
+    def __init__(self, options, expirations, interest_rate, div_yields, positions, stock_price):
+        super().__init__()
+
+        # Necessary financial data
+        self.options = options
+        self.expirations = expirations
+        self.r_f = interest_rate 
+        self.div_yields = div_yields
+        self.positions = positions
+        self.s0 = stock_price
+
+        self.prices = self.get_price_range()
+        self.dates_range = self.generate_dates()
+
+        # Figure configurations
+        self.setGeometry(100, 100, 800, 600)
+        self.setWindowTitle("Future Value Heatmap")
+
+        main_layout = qtw.QHBoxLayout()
+        self.setLayout(main_layout)
         
+        # Create a GraphicsLayoutWidget
+        self.graph_widget = pg.GraphicsLayoutWidget()
+        main_layout.addWidget(self.graph_widget)
+        
+        # Add a plot to the GraphicsLayoutWidget
+        self.plot = self.graph_widget.addPlot()
+        
+        # Generate sample data for the heatmap
+        self.data = self.generate_data()
+        
+        # Create an ImageItem
+        self.img_item = pg.ImageItem()
+        self.plot.addItem(self.img_item)
+
+        # Set image data
+        self.img_item.setImage(self.data)
+
+        # Customize the colormap
+        cmap = pg.colormap.get('viridis')  # Choose a colormap
+        self.img_item.setLookupTable(cmap.getLookupTable(0.0, 1.0, 256), update=True)
+        self.img_item.setLevels([np.min(self.data), np.max(self.data)])
+
+        self.add_color_bar(cmap)
+
+        return
+
+    def get_price_range(self):
+        self.lower = self.s0 * (1 - 0.3)
+        self.upper = self.s0 * (1 + 0.3)
+
+        return np.linspace(self.lower, self.upper, num=500).round()
+    
+    def generate_dates(self):
+        dates_range = []
+        exp = max(self.expirations)
+
+        for i in range(1, exp+1):
+            dates_range.append((datetime.today() + timedelta(days=i)).strftime('%Y-%m-%d'))
+        return dates_range
+    
+    def generate_data(self):
+        '''
+        Generates data for heatmap using attributes of the class.
+        '''
+
+        values = np.zeros((len(self.dates_range), len(self.prices)))
+
+        for option, div_yield, position in zip(self.options, self.div_yields, self.positions):
+            opt_type = option['Description'][-1].lower()
+            k = option['Strike']
+            iv = option['Volatility']
+
+            for j, price in enumerate(self.prices):
+                for i, date in enumerate(self.dates_range):
+                    dte = (len(self.dates_range)-(i+1))/365
+                    if dte > 0:
+                        val = american(opt_type,
+                                         price, 
+                                         k, 
+                                         dte,
+                                         self.r_f,
+                                         div_yield, 
+                                         iv)[0] # use option pricing library to get American option value
+                    else: # if T = 0 or if time has expired, we just take intrinsic value
+                        if opt_type == 'c':
+                            val = max(price - k, 0)
+                        else:
+                            val = max(k - price, 0)
+                    
+                    if position == 'long':
+                        values[i, j] += (val * 100)  # 100 shares per contract
+                    elif position == 'short':
+                        values[i, j] -= (val * 100)
+
+        return values
+    
+    def add_color_bar(self, cmap):
+        # Create a color bar
+        color_bar = pg.GradientEditorItem()
+        color_bar.restoreState({'mode': 'rgb', 'ticks': [(0.0, (0, 0, 255, 255)),
+                                                         (0.5, (0, 255, 0, 255)),
+                                                         (1.0, (255, 0, 0, 255))]})
+        self.graph_widget.nextRow()
+        self.graph_widget.addItem(color_bar)
+    
+

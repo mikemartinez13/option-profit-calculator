@@ -18,7 +18,7 @@ def filter_chain(chain: pd.DataFrame):
     relevant_columns = [
     'symbol', 'description', 'strikePrice', 
     'bid', 'ask', 'last', 'mark', 
-    'delta', 'gamma', 'theta', 'vega', 'rho', 
+    'delta', 'gamma', 'theta', 'vega', 'rho', 'volatility',
     'inTheMoney', 'intrinsicValue', 'extrinsicValue', 'daysToExpiration'
     ]
 
@@ -27,7 +27,7 @@ def filter_chain(chain: pd.DataFrame):
     renamed_columns = [
         'Contract Name', 'Description', 'Strike', 
         'Bid', 'Ask', 'Last', 'Mark', 
-        'Delta', 'Gamma', 'Theta', 'Vega', 'Rho', 
+        'Delta', 'Gamma', 'Theta', 'Vega', 'Rho', 'Volatility',
         'ITM', 'Intrinsic Value', 'Extrinsic Value', 'Days to Expiration'
         ]
     newchain.columns = renamed_columns
@@ -55,6 +55,9 @@ class SchwabData:
         return
     
     def get_options_chain_dict(self, ticker:str) -> dict:
+        '''
+        Get options chain and interest rate. 
+        '''
         opt_dict = {'calls':defaultdict(list), 
                     'puts':defaultdict(list)}
         #q: Defaultdict of dict then of lists?
@@ -73,7 +76,9 @@ class SchwabData:
                     df=pd.DataFrame(records)
                     opt_dict[type.split('ExpDateMap')[0]+'s'][convert_date(expdate)] = filter_chain(df)
 
-        return opt_dict
+        interest_rate = json_data['interestRate']
+
+        return opt_dict, interest_rate
     
     def get_price(self, ticker:str):
         '''
@@ -82,6 +87,15 @@ class SchwabData:
         quote = self.client.quote(ticker).json()
 
         return quote[ticker]['quote']['lastPrice']
+    
+    def get_div_yield(self, ticker:str):
+        '''
+        Get the current interest rate.
+        '''
+        quote = self.client.quote(ticker).json()
+
+        return quote[ticker]['fundamental']['divYield']
+
 
 class DummyData:
     def __init__(self):

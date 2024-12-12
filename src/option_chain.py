@@ -21,10 +21,12 @@ import pandas as pd
 from src.custom_components import configure_button
 from utils.data_utils import SchwabData, DummyData
 from vis.payoff import OptionPayoffPlot
+from vis.heatmap import Heatmap
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtCore import QUrl
 
 import os
+import traceback
 
 from datetime import datetime
 
@@ -68,12 +70,15 @@ class OptionChainWindow(qtw.QWidget):
 
         self.show_no_data_message()
 
-        #print("Show calls is",self.show_calls)
 
-        # expiration_dates = self.calls_data.keys()
+        # initialize data
 
-        # for expdate in expiration_dates:
-        #     self.add_tab(expdate, self.calls_data[expdate], self.puts_data[expdate])
+        self.options = []
+        self.expirations = []
+        self.div_yields = []
+        self.positions = []
+
+        return
 
     def configure_left_layout(self, layout: QVBoxLayout):
         left_layout = qtw.QVBoxLayout()
@@ -122,6 +127,7 @@ class OptionChainWindow(qtw.QWidget):
         self.long_button = QPushButton()
         self.short_button = QPushButton()
         self.reset_button = QPushButton()
+        self.heatmap = QPushButton()
 
         configure_button(self.long_button,
                             text="Add Long to Plot (Buy)",
@@ -135,12 +141,17 @@ class OptionChainWindow(qtw.QWidget):
                             text="Reset Plot",
                             command=self.reset_plot
                         )
+        configure_button(self.heatmap, 
+                            text="Show Future Payoff",
+                            command=self.show_heatmap
+                        )
         
         right_layout.addWidget(self.canvas)
         right_layout.addWidget(self.option_description)
         right_layout.addWidget(self.long_button)
         right_layout.addWidget(self.short_button)
         right_layout.addWidget(self.reset_button)
+        right_layout.addWidget(self.heatmap)
         
         layout.addLayout(right_layout, stretch = 2)
 
@@ -230,14 +241,6 @@ class OptionChainWindow(qtw.QWidget):
         # Get the current widget (tab)
         current_tab = self.tabs.currentIndex()
         expiration_date = self.tabs.tabBar().tabData(current_tab)
-        # if not isinstance(current_tab, OptionTab):
-        #     QMessageBox.warning(
-        #         self,
-        #         "Unknown Tab",
-        #         "Active tab does not contain option data.",
-        #         QMessageBox.Ok
-        #     )
-        #     return
 
         if self.show_calls:
             df = self.calls_data[expiration_date]
@@ -294,21 +297,34 @@ class OptionChainWindow(qtw.QWidget):
         return
 
     def get_ticker_data(self):
+
+        if self.ticker and self.ticker_input.text().upper() != self.ticker: # if we have a different ticker than already exists
+            QMessageBox.warning(
+                self,
+                "If you change the ticker, you're strategy plot will be reset! Proceed?",   
+                QMessageBox.Ok | QMessageBox.Cancel
+            )
+            if QMessageBox.Cancel:
+                return
+            else:
+                self.reset_plot()
         self.ticker = self.ticker_input.text().upper()
         
         try:
-            data = self.engine.get_options_chain_dict(self.ticker)
+            data, r_f = self.engine.get_options_chain_dict(self.ticker)
         except ValueError as e:
-            QMessageBox.warning(
-                self,
-                "Invalid Ticker",
-                str(e),
-                QMessageBox.Ok
-            )
-            return
+            # QMessageBox.warning(
+            #     self,
+            #     "Invalid Ticker",
+            #     str(e),
+            #     QMessageBox.Ok
+            # )
+            print(traceback.format_exc())
+            return 
 
         self.calls_data = data['calls'] # data initialized
         self.puts_data = data['puts']
+        self.interest_rate = r_f
 
         # Clear existing tabs
         self.tabs.clear()
@@ -333,6 +349,11 @@ class OptionChainWindow(qtw.QWidget):
                                 buy=True, 
                                 s0=self.engine.get_price(ticker=self.ticker)
                                 )
+        self.options.append(self.current_option)
+        self.expirations.append(self.current_option['Days to Expiration'])
+        self.div_yields.append(self.engine.get_div_yield(self.ticker))
+        self.positions.append("long")
+
         self.update_plot()
         return
 
@@ -345,6 +366,11 @@ class OptionChainWindow(qtw.QWidget):
                                 buy=False, 
                                 s0=self.engine.get_price(ticker=self.ticker)
                                 ) # updates traces and generates new html
+        self.options.append(self.current_option)
+        self.expirations.append(self.current_option['Days to Expiration'])
+        self.div_yields.append(self.engine.get_div_yield(self.ticker))
+        self.positions.append("short")
+
         self.update_plot() # assigns new html to webengineview
         return
     
@@ -356,5 +382,27 @@ class OptionChainWindow(qtw.QWidget):
         self.option_description.setText("No option selected.")
         
         self.update_plot()
+
+    def show_heatmap(self):
+        '''
+        Shows the future payoff heatmap.
+        '''
+        if not hasattr(self, 'interest_rate'):
+            QMessageBox.warning(
+                self,
+                "No Data",
+                "Please load data before showing the heatmap.",
+                QMessageBox.Ok
+            )
+            return
+
+        heatmap = Heatmap(self.options, 
+                        self.expirations,
+                        self.interest_rate,
+                        self.div_yields, 
+                        self.positions,
+                        self.engine.get_price(self.ticker)
+                        )
+        heatmap.show()
 
 
