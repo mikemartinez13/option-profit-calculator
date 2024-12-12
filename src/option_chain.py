@@ -20,7 +20,13 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 import pandas as pd
 from src.custom_components import configure_button
 from utils.data_utils import SchwabData, DummyData
-from vis.plots import OptionPayoffPlot
+from vis.payoff import OptionPayoffPlot
+from PyQt5.QtWebEngineWidgets import QWebEngineView
+from PyQt5.QtCore import QUrl
+
+import os
+
+from datetime import datetime
 
 import json
 
@@ -34,7 +40,7 @@ class OptionChainWindow(qtw.QWidget):
     def __init__(self, demo = False, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Options Chains by Expiration Date")
-        self.setGeometry(200, 200, 1400, 600)
+        self.setGeometry(200, 200, 1600, 600)
 
         if demo:
             self.engine = DummyData()
@@ -56,7 +62,7 @@ class OptionChainWindow(qtw.QWidget):
         self.configure_left_layout(main_layout)
 
         self.tabs = QTabWidget()
-        main_layout.addWidget(self.tabs, stretch = 2)
+        main_layout.addWidget(self.tabs, stretch = 3)
 
         self.configure_figure(main_layout)
 
@@ -103,9 +109,13 @@ class OptionChainWindow(qtw.QWidget):
         layout.addLayout(left_layout, stretch = 0)
 
     def configure_figure(self, layout: QVBoxLayout):
-        #q: How do I add a figure to the right layout?
+
         right_layout = qtw.QVBoxLayout()
-        self.canvas = FigureCanvasQTAgg(self.display.fig)
+
+        self.canvas = QWebEngineView()
+        self.canvas.setHtml(self.display.html)
+        # self.update_plot()
+        #self.canvas.loadFinished.connect(self.on_load_finished)
 
         self.option_description = QLabel("No option selected.")
 
@@ -132,7 +142,7 @@ class OptionChainWindow(qtw.QWidget):
         right_layout.addWidget(self.short_button)
         right_layout.addWidget(self.reset_button)
         
-        layout.addLayout(right_layout, stretch = 1)
+        layout.addLayout(right_layout, stretch = 2)
 
     def show_no_data_message(self):
         '''
@@ -151,6 +161,17 @@ class OptionChainWindow(qtw.QWidget):
 
         # Add the tab to the QTabWidget
         self.tabs.addTab(tab, "No Data")
+    
+    def update_plot(self):
+        # self.htmlpath = self.display.temp_file_path
+
+        # html = self.display.update_plot()
+        # #print(f"Temporary Plotly HTML file updated at: {self.htmlpath}")
+        # #self.canvas.load(QUrl.fromLocalFile(self.htmlpath))
+        # unique_base_url = QUrl("about:blank#{}".format(datetime.now().timestamp()))
+        self.canvas.setHtml(self.display.html)
+        #print("Web view reloaded.")
+
 
     def add_tab(self, expiration_date: str, calls_df: pd.DataFrame, puts_df: pd.DataFrame):
         '''
@@ -240,6 +261,8 @@ class OptionChainWindow(qtw.QWidget):
         self.option_description.setText("{1} {0} at $K={2}$, bid of {3}, ask of {4}, expiring {5}."\
                                         .format(self.type, self.ticker, self.current_option['Strike'], self.current_option['Bid'], self.current_option['Ask'], expiration_date))
 
+        return
+
     def toggle_calls_puts(self):
         '''
         Toggles the displayed options between calls and puts.
@@ -267,6 +290,8 @@ class OptionChainWindow(qtw.QWidget):
 
             # Update the current model reference
             tab_info['current_model'] = new_model
+        
+        return
 
     def get_ticker_data(self):
         self.ticker = self.ticker_input.text().upper()
@@ -297,6 +322,8 @@ class OptionChainWindow(qtw.QWidget):
 
         self.ticker_input.clear()
 
+        return
+
     def add_long(self):
         '''
         Adds a long option to the plot.
@@ -306,6 +333,8 @@ class OptionChainWindow(qtw.QWidget):
                                 buy=True, 
                                 s0=self.engine.get_price(ticker=self.ticker)
                                 )
+        self.update_plot()
+        return
 
     def add_short(self):
         '''
@@ -315,51 +344,17 @@ class OptionChainWindow(qtw.QWidget):
                                 opt_type=self.type, 
                                 buy=False, 
                                 s0=self.engine.get_price(ticker=self.ticker)
-                                )
+                                ) # updates traces and generates new html
+        self.update_plot() # assigns new html to webengineview
+        return
     
     def reset_plot(self):
         '''
-        Resets the plot to its initial state.
+        Resets the plot.
         '''
         self.display.reset_data()
         self.option_description.setText("No option selected.")
-
-    # def configure_demo(self, layout: QVBoxLayout):
-    #     left_layout = qtw.QVBoxLayout()
-
-    #     # Add a toggle button to view either calls or puts
-    #     self.toggle_button = QPushButton()
-
-    #     configure_button(self.toggle_button, 
-    #                      text="Toggle Calls/Puts",
-    #                      command=self.toggle_calls_puts
-    #                      )
         
-    #     left_layout.addWidget(self.toggle_button)
+        self.update_plot()
 
-    #     # # Add a ticker input field
-    #     # ticker_layout = QHBoxLayout()
-    #     # ticker_label = qtw.QLabel("Ticker:")
-    #     # self.ticker_input = QLineEdit()
-    #     # self.enter_ticker = QPushButton()
 
-    #     # configure_button(self.enter_ticker, 
-    #     #                  text="Enter",
-    #     #                  command=self.get_ticker_data
-    #     #                  )
-        
-    #     # ticker_layout.addWidget(ticker_label)
-    #     # ticker_layout.addWidget(self.ticker_input)
-
-    #     # # Add to the left layout
-    #     # left_layout.addLayout(ticker_layout)
-    #     left_layout.addWidget(self.enter_ticker)
-
-    #     layout.addLayout(left_layout, stretch = 0)
-
-    #     self.configure_figure(layout)
-
-    # def read_demo_data(self, filepath:str = 'data/demo_data.json') -> dict:
-    #     with open('data/demo_data.json', 'r') as file:
-    #         data = json.load(file)
-    #     return data
