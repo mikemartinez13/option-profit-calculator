@@ -12,65 +12,6 @@ from optlib.gbs import american, black_scholes
 import PyQt5.QtWidgets as qtw
 import pyqtgraph as pg
 
-def make_heatmap(contract, ticker, strategy, stock_price:float, exp, stock_range: Optional[tuple] = None):
-    '''
-    Calculates options profit for dates up to expiry as a heatmap. Returns a plt.axes object. 
-    '''
-    # dates_range = generate_dates(exp)
-    
-    # STRATEGIES = {
-    #     'Long Call': Long_Call,
-    #     'Long Put': Long_Put
-    # }
-    
-    # strike = contract['Strike']
-    # if stock_range == None:
-    #     upper = stock_price * 1.05
-    #     lower = stock_price * 0.95
-    # else:
-    #     upper = stock_range[0] 
-    #     lower = stock_range[1]
-
-    # stock_range = np.linspace(lower,upper,25)
-    # stock_range = np.round(stock_range,decimals=2)
-    # stock_range = stock_range[::-1]
-    # stock_range.tostring()
-
-    # fig, ax = plt.subplots(figsize=(8,5))
-    
-    # heatmap_data = pd.DataFrame(index=stock_range, columns=dates_range)
-
-    # for price in stock_range:
-    #     for i,date in enumerate(dates_range):
-    #         # Dummy calculation example: square of the price value
-    #         dte = (len(dates_range)-(i+1))/365
-    #         if dte == 0:
-    #             dte = (1/365)
-    #         value = STRATEGIES[strategy](price,ticker,dte)
-    #         heatmap_data.at[price,date] = float(value)
-    #         #print(type(heatmap_data.at[price,date])) # all floats as of here
-
-
-    # heatmap_data = heatmap_data.astype(float)
-    # #heatmap_data.astype(float)
-    
-    # ax = sns.heatmap(heatmap_data,annot=True,fmt='.2f',linewidth=0.5,annot_kws={'size':4.5},cmap='RdYlGn')
-    # # painting strike price line. 
-
-    # strike = contract['Strike']
-    # ymin, ymax = ax.get_ylim()
-
-    # for i, n in enumerate(range(len(heatmap_data.index),-1,-1)):
-    #     next = heatmap_data.index[n-1]
-    #     if float(n) <= strike <= float(next):
-    #         plt.axhline(y=(ymin - i),color = 'black',linewidth=2)
-    #         break
-    
-    # # making final changes to the plot
-    # ax.xaxis.tick_top()
-    # plt.xticks(rotation=45)
-    # return fig, ax
-    pass
 
 class Heatmap(qtw.QWidget):
     def __init__(self, options, expirations, interest_rate, div_yields, positions, stock_price):
@@ -85,7 +26,7 @@ class Heatmap(qtw.QWidget):
         self.s0 = stock_price
 
         self.prices = self.get_price_range()
-        self.dates_range = self.generate_dates()
+        self.dates_range, self.dates_positions = self.generate_dates()
 
         # Figure configurations
         self.setGeometry(100, 100, 800, 600)
@@ -102,13 +43,14 @@ class Heatmap(qtw.QWidget):
         
         # Generate sample data for the heatmap
         self.data = self.generate_data()
-        print(self.expirations)
         
         # Create an ImageItem
         self.img_item = pg.ImageItem()
         
         self.add_plot() # adds plot to 
         #self.plot.addItem(self.img_item)
+
+        self.view_box = self.plot.getViewBox()
 
         # Set image data
         self.img_item.setImage(self.data)
@@ -119,6 +61,8 @@ class Heatmap(qtw.QWidget):
         self.img_item.setLevels([np.min(self.data), np.max(self.data)])
 
         self.add_color_bar(cmap)
+
+        self.set_zoom_limits()
 
         return
 
@@ -134,8 +78,9 @@ class Heatmap(qtw.QWidget):
 
         for i in range(0, exp+1):
             dates_range.append((datetime.today() + timedelta(days=i)).strftime('%Y-%m-%d'))
-        print(dates_range)
-        return dates_range
+
+        date_positions = np.arange(len(dates_range)) # get indices of dates, e.g. [0, 1, 2, 3, 4]
+        return dates_range, date_positions
     
     def generate_data(self):
         '''
@@ -144,7 +89,6 @@ class Heatmap(qtw.QWidget):
 
         values = np.zeros((len(self.dates_range), len(self.prices)))
 
-        print(self.div_yields)
         for option, div_yield, position in zip(self.options, self.div_yields, self.positions):
             opt_type = option['Description'][-1].lower()
             k = option['Strike']
@@ -154,7 +98,6 @@ class Heatmap(qtw.QWidget):
                 for i, date in enumerate(self.dates_range):
                     dte = (len(self.dates_range)-(i+1))/365
                     if dte > 0:
-                        print(opt_type, price, k, dte, self.r_f, div_yield, iv, self.r_f - div_yield)
                         val = american(opt_type,
                                          price, 
                                          k, 
@@ -176,10 +119,8 @@ class Heatmap(qtw.QWidget):
         return values
     
     def add_plot(self):
-        date_positions = np.arange(len(self.dates_range))  # get indeces of dates, e.g. [0, 1, 2, 3, 4]
-        print(date_positions)
-        ticks = [ (pos+0.5, date) for pos, date in zip(date_positions, self.dates_range) ]
-        print(ticks)
+        
+        ticks = [ (pos+0.5, date) for pos, date in zip(self.dates_positions, self.dates_range) ]
 
         # Create a custom AxisItem
         axis = pg.AxisItem('bottom')
@@ -203,5 +144,64 @@ class Heatmap(qtw.QWidget):
                                                          (1.0, (255, 0, 0, 255))]})
         self.graph_widget.nextRow()
         self.graph_widget.addItem(color_bar)
+    
+        
+    def set_zoom_limits(self):
+        """
+        Sets the minimum and maximum limits for zooming on both X and Y axes.
+        Users won't be able to zoom out beyond these limits.
+        """
+        # Define the desired ranges
+        # For example, limit X and Y axes between -10 and 10
+        self.x_min, self.x_max = min(self.dates_positions), max(self.dates_positions) + 1
+        self.y_min, self.y_max = self.lower, self.upper
+        
+        # Set the limits on the ViewBox
+        self.view_box.setLimits(xMin=self.x_min, xMax=self.x_max, yMin=self.y_min, yMax=self.y_max)
+        
+        # Optionally, set the initial view range
+        self.view_box.setRange(xRange=(self.x_min, self.x_max), yRange=(self.y_min, self.y_max))
+        
+        # Disable automatic range adjustment
+        self.view_box.setAutoVisible(x=False, y=False)
+        
+        # Connect signals to enforce limits during interactions
+        self.view_box.sigRangeChanged.connect(self.on_range_changed)
+
+    def on_range_changed(self):
+        """
+        Slot to handle range changes and enforce zoom limits.
+        """
+        # Get the current range
+        view_range = self.view_box.viewRange()
+        x_range, y_range = view_range
+        
+        # Initialize flags to check if limits are exceeded
+        needs_update = False
+        new_x_range = list(x_range)
+        new_y_range = list(y_range)
+        
+        # Check and adjust X-axis
+        if new_x_range[0] < self.x_min:
+            new_x_range[0] = self.x_min
+            needs_update = True
+        if new_x_range[1] > self.x_max:
+            new_x_range[1] = self.x_max
+            needs_update = True
+        
+        # Check and adjust Y-axis
+        if new_y_range[0] < self.y_min:
+            new_y_range[0] = self.y_min
+            needs_update = True
+        if new_y_range[1] > self.y_max:
+            new_y_range[1] = self.y_max
+            needs_update = True
+        
+        # If limits are exceeded, update the view range
+        if needs_update:
+            self.view_box.blockSignals(True)  # Prevent recursive calls
+            self.view_box.setXRange(new_x_range[0], new_x_range[1], padding=0)
+            self.view_box.setYRange(new_y_range[0], new_y_range[1], padding=0)
+            self.view_box.blockSignals(False)
     
 

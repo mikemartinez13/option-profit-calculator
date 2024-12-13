@@ -153,6 +153,11 @@ class OptionChainWindow(qtw.QWidget):
         right_layout.addWidget(self.short_button)
         right_layout.addWidget(self.reset_button)
         right_layout.addWidget(self.heatmap)
+
+        self.long_button.setEnabled(False)
+        self.short_button.setEnabled(False)
+        self.reset_button.setEnabled(False)
+        self.heatmap.setEnabled(False)
         
         layout.addLayout(right_layout, stretch = 2)
 
@@ -175,14 +180,9 @@ class OptionChainWindow(qtw.QWidget):
         self.tabs.addTab(tab, "No Data")
     
     def update_plot(self):
-        # self.htmlpath = self.display.temp_file_path
-
-        # html = self.display.update_plot()
-        # #print(f"Temporary Plotly HTML file updated at: {self.htmlpath}")
-        # #self.canvas.load(QUrl.fromLocalFile(self.htmlpath))
-        # unique_base_url = QUrl("about:blank#{}".format(datetime.now().timestamp()))
+        
         self.canvas.setHtml(self.display.html)
-        #print("Web view reloaded.")
+        return 
 
 
     def add_tab(self, expiration_date: str, calls_df: pd.DataFrame, puts_df: pd.DataFrame):
@@ -260,6 +260,14 @@ class OptionChainWindow(qtw.QWidget):
         row = index.row()
 
         self.current_option = df.iloc[row].to_dict() # make attribute so other functions can access
+
+        # Enable buttons 
+        self.long_button.setEnabled(True)
+        self.short_button.setEnabled(True)
+        self.reset_button.setEnabled(True)
+        self.heatmap.setEnabled(True)
+
+        # Update option description
         self.type = "call" if self.show_calls else "put"
 
         self.option_description.setText("{1} {0} at $K={2}$, bid of {3}, ask of {4}, expiring {5}."\
