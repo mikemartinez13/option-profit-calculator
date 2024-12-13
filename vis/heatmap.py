@@ -14,7 +14,7 @@ import pyqtgraph as pg
 
 
 class Heatmap(qtw.QWidget):
-    def __init__(self, options, expirations, interest_rate, div_yields, positions, stock_price):
+    def __init__(self, options, expirations, interest_rate, div_yields, positions, stock_price, cost):
         super().__init__()
 
         # Necessary financial data
@@ -24,13 +24,23 @@ class Heatmap(qtw.QWidget):
         self.div_yields = div_yields
         self.positions = positions
         self.s0 = stock_price
+        self.cost = cost
 
-        self.prices = self.get_price_range()
-        self.dates_range, self.dates_positions = self.generate_dates()
+        self.num_prices = 20
+        # controls how many stock prices are displayed on the heatmap
+
+        self.prices, self.price_indices = self.get_price_range(self.num_prices)
+        print(self.prices)
+        self.date_range, self.date_indices = self.generate_dates()
+        print(self.date_range)
+        print(self.date_indices)
 
         # Figure configurations
         self.setGeometry(100, 100, 800, 600)
         self.setWindowTitle("Future Value Heatmap")
+
+        self.x_min, self.x_max = min(self.date_indices), max(self.date_indices) + 1
+        self.y_min, self.y_max = min(self.price_indices), max(self.price_indices)
 
         main_layout = qtw.QHBoxLayout()
         self.setLayout(main_layout)
@@ -47,47 +57,54 @@ class Heatmap(qtw.QWidget):
         # Create an ImageItem
         self.img_item = pg.ImageItem()
         
-        self.add_plot() # adds plot to 
+        self.plot = self.configure_plot() # adds plot to 
         #self.plot.addItem(self.img_item)
-
-        self.view_box = self.plot.getViewBox()
 
         # Set image data
         self.img_item.setImage(self.data)
 
         # Customize the colormap
         cmap = pg.colormap.get('viridis')  # Choose a colormap
-        self.img_item.setLookupTable(cmap.getLookupTable(0.0, 1.0, 256), update=True)
+        self.img_item.setLookupTable(cmap.getLookupTable(0.0, 1.0, self.num_prices), update=True)
         self.img_item.setLevels([np.min(self.data), np.max(self.data)])
 
-        self.add_color_bar(cmap)
+        print(np.min(self.data), np.max(self.data))
+
+        self.img_item.setPos(min(self.date_indices), min(self.price_indices))
+
+        self.view_box = self.plot.getViewBox()
 
         self.set_zoom_limits()
-
         return
 
-    def get_price_range(self):
+    def get_price_range(self, num_steps):
         self.lower = self.s0 * (1 - 0.3)
         self.upper = self.s0 * (1 + 0.3)
 
-        return np.linspace(self.lower, self.upper, num=500).round()
+        price_range = np.round(np.linspace(self.lower, self.upper, num=num_steps), 2)
+        price_positions = np.arange(len(price_range)) # get indices of prices
+
+        return price_range, price_positions
     
     def generate_dates(self):
-        dates_range = []
+        date_range = []
         exp = max(self.expirations)
 
         for i in range(0, exp+1):
-            dates_range.append((datetime.today() + timedelta(days=i)).strftime('%Y-%m-%d'))
+            date_range.append((datetime.today() + timedelta(days=i)).strftime('%Y-%m-%d'))
 
-        date_positions = np.arange(len(dates_range)) # get indices of dates, e.g. [0, 1, 2, 3, 4]
-        return dates_range, date_positions
+        date_indices = np.arange(len(date_range)) # get indices of dates, e.g. [0, 1, 2, 3, 4]
+
+        return date_range, date_indices
     
     def generate_data(self):
         '''
         Generates data for heatmap using attributes of the class.
         '''
 
-        values = np.zeros((len(self.dates_range), len(self.prices)))
+        values = np.zeros((len(self.date_range), len(self.prices)))
+
+        print(values.shape)
 
         for option, div_yield, position in zip(self.options, self.div_yields, self.positions):
             opt_type = option['Description'][-1].lower()
@@ -95,8 +112,8 @@ class Heatmap(qtw.QWidget):
             iv = option['Volatility']/100 if option['Volatility'] < 200 else 2
 
             for j, price in enumerate(self.prices):
-                for i, date in enumerate(self.dates_range):
-                    dte = (len(self.dates_range)-(i+1))/365
+                for i, date in enumerate(self.date_range):
+                    dte = (len(self.date_range)-(i+1))/365
                     if dte > 0:
                         val = american(opt_type,
                                          price, 
@@ -116,24 +133,34 @@ class Heatmap(qtw.QWidget):
                     elif position == 'short':
                         values[i, j] -= (val * 100)
 
+        print(values)
         return values
     
-    def add_plot(self):
+    def configure_plot(self):
         
-        ticks = [ (pos+0.5, date) for pos, date in zip(self.dates_positions, self.dates_range) ]
+        xticks = [ (pos+0.5, date) for pos, date in zip(self.date_indices, self.date_range) ]
+        yticks = [ (pos, str(price)) for pos, price in enumerate(self.prices) ]
 
         # Create a custom AxisItem
-        axis = pg.AxisItem('bottom')
-        axis.setTicks([ticks])
+        xaxis = pg.AxisItem('bottom')
+        xaxis.setTicks([xticks])
 
-        self.plot = self.graph_widget.addPlot(axisItems={'bottom': axis})
+        yaxis = pg.AxisItem('left')
+        print(yticks)
+        yaxis.setTicks([yticks])
+
+        #axis.setLabel(rotation=45)
+
+        plot = self.graph_widget.addPlot(axisItems={'bottom': xaxis, 'left': yaxis})
     
         # Re-add the ImageItem to the new plot
-        self.plot.addItem(self.img_item)
+        plot.addItem(self.img_item)
 
-        self.plot.setLabel('left', 'Time to Evaluation (Days)')
-        self.plot.setLabel('bottom', 'Date')
-        self.plot.setTitle("Option Strategy Future Value Heatmap")
+        plot.setLabel('left', 'Stock Price ($)')
+        plot.setLabel('bottom', 'Date')
+        plot.setTitle("Option Strategy Value Over Time")
+
+        return plot
 
     
     def add_color_bar(self, cmap):
@@ -153,8 +180,6 @@ class Heatmap(qtw.QWidget):
         """
         # Define the desired ranges
         # For example, limit X and Y axes between -10 and 10
-        self.x_min, self.x_max = min(self.dates_positions), max(self.dates_positions) + 1
-        self.y_min, self.y_max = self.lower, self.upper
         
         # Set the limits on the ViewBox
         self.view_box.setLimits(xMin=self.x_min, xMax=self.x_max, yMin=self.y_min, yMax=self.y_max)

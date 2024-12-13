@@ -54,6 +54,9 @@ class OptionChainWindow(qtw.QWidget):
 
         self.ticker = None
 
+        # display values
+        self.total_cost = 0
+
         # Toggle state
         self.show_calls = True
 
@@ -362,6 +365,7 @@ class OptionChainWindow(qtw.QWidget):
         self.expirations.append(self.current_option['Days to Expiration'])
         self.div_yields.append(self.engine.get_div_yield(self.ticker))
         self.positions.append("long")
+        self.total_cost += self.current_option['Ask']
 
         self.update_plot()
         return
@@ -379,6 +383,7 @@ class OptionChainWindow(qtw.QWidget):
         self.expirations.append(self.current_option['Days to Expiration'])
         self.div_yields.append(self.engine.get_div_yield(self.ticker))
         self.positions.append("short")
+        self.total_cost -= self.current_option['Ask']
 
         self.update_plot() # assigns new html to webengineview
         return
