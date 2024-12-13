@@ -82,6 +82,9 @@ class OptionPayoffPlot:
 
     def __init__(self):
 
+        self.xdata = np.array([])
+        self.ydata = np.array([])
+
         self.layout = go.Layout(
             xaxis=dict(
                 range=[0, 1000],  # Fixed range without allowing panning beyond
@@ -160,7 +163,7 @@ class OptionPayoffPlot:
                 payoff_series = short_put(self.xdata, option['Strike'], option['Ask'])
                 label = 'Short Put'
 
-        if hasattr(self, 'ydata'):
+        if self.ydata.size > 0:
             self.ydata += payoff_series
         else:
             self.ydata = payoff_series
@@ -182,95 +185,31 @@ class OptionPayoffPlot:
             if y >= 0:
                 pos_x.append(x)
                 pos_y.append(y)
-                # To handle transitions, add a point at y=0
-                # if neg_x and neg_y and neg_y[-1] < 0:
-                #     pos_x.insert(-1, x)
-                #     pos_y.insert(-1, 0)
             else:
                 neg_x.append(x)
                 neg_y.append(y)
-                # To handle transitions, add a point at y=0
-                # if pos_x and pos_y and pos_y[-1] >= 0:
-                #     neg_x.insert(-1, x)
-                #     neg_y.insert(-1, 0)
         
         # Update figure and plot
         self.fig.update_traces(x=pos_x, y=pos_y, selector=dict(name='Profit >= 0'))
         self.fig.update_traces(x=neg_x, y=neg_y, selector=dict(name='Profit < 0'))
 
-        #self.fig.update_layout(plot_bgcolor=self.random_color())
-        #self.add_continuous_shapes()
-
         self.html = self.generate_html()
 
-    
         return 
-    
-    def add_continuous_shapes(self):
-        '''
-        Adds shape lines to represent the continuation of positive and negative profit lines.
-        '''
-        # Remove existing shapes to avoid duplication
-        self.fig.update_layout(shapes=[])
-        
-        # Positive Profit Line: Determine the slope based on current data
-        if len(self.positive_trace.x) >= 2:
-            x_start, y_start = self.positive_trace.x[0], self.positive_trace.y[0]
-            x_end, y_end = self.positive_trace.x[-1], self.positive_trace.y[-1]
-            slope_pos = (y_end - y_start) / (x_end - x_start) if (x_end - x_start) != 0 else 0
-            intercept_pos = y_end - slope_pos * x_end
-            
-            # Define the line extending beyond the current x range
-            shape_pos = dict(
-                type='line',
-                x0=self.xdata.min(),
-                y0=slope_pos * self.xdata.min() + intercept_pos,
-                x1=self.xdata.max(),
-                y1=slope_pos * self.xdata.max() + intercept_pos,
-                line=dict(color='green', dash='dash'),
-            )
-            self.fig.add_shape(shape_pos)
-        
-        # Negative Profit Line: Determine the slope based on current data
-        if len(self.negative_trace.x) >= 2:
-            x_start, y_start = self.negative_trace.x[0], self.negative_trace.y[0]
-            x_end, y_end = self.negative_trace.x[-1], self.negative_trace.y[-1]
-            slope_neg = (y_end - y_start) / (x_end - x_start) if (x_end - x_start) != 0 else 0
-            intercept_neg = y_end - slope_neg * x_end
-            
-            # Define the line extending beyond the current x range
-            shape_neg = dict(
-                type='line',
-                x0=self.xdata.min(),
-                y0=slope_neg * self.xdata.min() + intercept_neg,
-                x1=self.xdata.max(),
-                y1=slope_neg * self.xdata.max() + intercept_neg,
-                line=dict(color='red', dash='dash'),
-            )
-            self.fig.add_shape(shape_neg)
-    
-    def random_color(self):
-        """
-        Generates a random color in hexadecimal format.
-        """
-        return f'#{random.randint(0, 0xFFFFFF):06x}'
     
     def reset_data(self) -> None:
         '''
         Reset the x and y data arrays to empty.
         '''
-        del self.xdata
-        del self.ydata
+        self.xdata = np.array([])
+        self.ydata = np.array([])
 
-        self.positive_trace.x = []
-        self.positive_trace.y = []
-
-        self.negative_trace.x = []
-        self.negative_trace.y = []
+        self.fig.update_traces(x=[], y=[], selector=dict(name='Profit >= 0'))
+        self.fig.update_traces(x=[], y=[], selector=dict(name='Profit < 0'))
         
+        self.html = self.generate_html()
+
         return
-
-
 
 
 if __name__ == '__main__':
