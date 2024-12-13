@@ -415,7 +415,8 @@ class OptionChainWindow(qtw.QWidget):
                         self.interest_rate,
                         self.div_yields, 
                         self.positions,
-                        self.engine.get_price(self.ticker)
+                        self.engine.get_price(self.ticker),
+                        self.total_cost
                         )
         self.heatmap.show()
 

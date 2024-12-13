@@ -75,6 +75,9 @@ class Heatmap(qtw.QWidget):
         self.view_box = self.plot.getViewBox()
 
         self.set_zoom_limits()
+
+        # Add annotations to the heatmap
+        self.add_annotations()
         return
 
     def get_price_range(self, num_steps):
@@ -161,6 +164,31 @@ class Heatmap(qtw.QWidget):
         plot.setTitle("Option Strategy Value Over Time")
 
         return plot
+    
+
+    def add_annotations(self):
+        """
+        Adds text annotations to each cell of the heatmap.
+        """
+
+        for i in range(len(self.date_range)):
+            for j in range(len(self.prices)):
+                # Calculate the center position of each cell
+                x = self.x_min + (j + 0.5) * (self.x_max - self.x_min) / len(self.prices)
+                y = self.y_min + (i + 0.5) * (self.y_max - self.y_min) / len(self.date_range)
+                
+                # Retrieve the value to annotate
+                value = self.data[i, j]
+                formatted_value = f"{value:.2f}"
+                
+                # Create a TextItem
+                text = pg.TextItem(text=formatted_value, anchor=(0.5, 0.5), color='white', border=None)
+                
+                # Set the position of the TextItem
+                text.setPos(x, y)
+                
+                # Add the TextItem to the plot
+                self.plot.addItem(text)
 
     
     def add_color_bar(self, cmap):
