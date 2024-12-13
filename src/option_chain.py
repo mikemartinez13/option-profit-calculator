@@ -50,6 +50,7 @@ class OptionChainWindow(qtw.QWidget):
             self.engine = SchwabData()
             
         self.display = OptionPayoffPlot()
+        self.heatmap = None
 
         self.ticker = None
 
@@ -324,7 +325,7 @@ class OptionChainWindow(qtw.QWidget):
 
         self.calls_data = data['calls'] # data initialized
         self.puts_data = data['puts']
-        self.interest_rate = r_f
+        self.interest_rate = r_f/100
 
         # Clear existing tabs
         self.tabs.clear()
@@ -396,13 +397,13 @@ class OptionChainWindow(qtw.QWidget):
             )
             return
 
-        heatmap = Heatmap(self.options, 
+        self.heatmap = Heatmap(self.options, 
                         self.expirations,
                         self.interest_rate,
                         self.div_yields, 
                         self.positions,
                         self.engine.get_price(self.ticker)
                         )
-        heatmap.show()
+        self.heatmap.show()
 
 

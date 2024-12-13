@@ -99,14 +99,16 @@ class Heatmap(qtw.QWidget):
         main_layout.addWidget(self.graph_widget)
         
         # Add a plot to the GraphicsLayoutWidget
-        self.plot = self.graph_widget.addPlot()
         
         # Generate sample data for the heatmap
         self.data = self.generate_data()
+        print(self.expirations)
         
         # Create an ImageItem
         self.img_item = pg.ImageItem()
-        self.plot.addItem(self.img_item)
+        
+        self.add_plot() # adds plot to 
+        #self.plot.addItem(self.img_item)
 
         # Set image data
         self.img_item.setImage(self.data)
@@ -130,8 +132,9 @@ class Heatmap(qtw.QWidget):
         dates_range = []
         exp = max(self.expirations)
 
-        for i in range(1, exp+1):
+        for i in range(0, exp+1):
             dates_range.append((datetime.today() + timedelta(days=i)).strftime('%Y-%m-%d'))
+        print(dates_range)
         return dates_range
     
     def generate_data(self):
@@ -141,15 +144,17 @@ class Heatmap(qtw.QWidget):
 
         values = np.zeros((len(self.dates_range), len(self.prices)))
 
+        print(self.div_yields)
         for option, div_yield, position in zip(self.options, self.div_yields, self.positions):
             opt_type = option['Description'][-1].lower()
             k = option['Strike']
-            iv = option['Volatility']
+            iv = option['Volatility']/100 if option['Volatility'] < 200 else 2
 
             for j, price in enumerate(self.prices):
                 for i, date in enumerate(self.dates_range):
                     dte = (len(self.dates_range)-(i+1))/365
                     if dte > 0:
+                        print(opt_type, price, k, dte, self.r_f, div_yield, iv, self.r_f - div_yield)
                         val = american(opt_type,
                                          price, 
                                          k, 
@@ -169,6 +174,26 @@ class Heatmap(qtw.QWidget):
                         values[i, j] -= (val * 100)
 
         return values
+    
+    def add_plot(self):
+        date_positions = np.arange(len(self.dates_range))  # get indeces of dates, e.g. [0, 1, 2, 3, 4]
+        print(date_positions)
+        ticks = [ (pos+0.5, date) for pos, date in zip(date_positions, self.dates_range) ]
+        print(ticks)
+
+        # Create a custom AxisItem
+        axis = pg.AxisItem('bottom')
+        axis.setTicks([ticks])
+
+        self.plot = self.graph_widget.addPlot(axisItems={'bottom': axis})
+    
+        # Re-add the ImageItem to the new plot
+        self.plot.addItem(self.img_item)
+
+        self.plot.setLabel('left', 'Time to Evaluation (Days)')
+        self.plot.setLabel('bottom', 'Date')
+        self.plot.setTitle("Option Strategy Future Value Heatmap")
+
     
     def add_color_bar(self, cmap):
         # Create a color bar
