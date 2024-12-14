@@ -30,17 +30,14 @@ class Heatmap(qtw.QWidget):
         # controls how many stock prices are displayed on the heatmap
 
         self.prices, self.price_indices = self.get_price_range(self.num_prices)
-        print(self.prices)
         self.date_range, self.date_indices = self.generate_dates()
-        print(self.date_range)
-        print(self.date_indices)
 
         # Figure configurations
         self.setGeometry(100, 100, 800, 600)
         self.setWindowTitle("Future Value Heatmap")
 
         self.x_min, self.x_max = min(self.date_indices), max(self.date_indices) + 1
-        self.y_min, self.y_max = min(self.price_indices), max(self.price_indices)
+        self.y_min, self.y_max = min(self.price_indices)-.05, max(self.price_indices)*(1+.05)
 
         main_layout = qtw.QHBoxLayout()
         self.setLayout(main_layout)
@@ -64,13 +61,11 @@ class Heatmap(qtw.QWidget):
         self.img_item.setImage(self.data)
 
         # Customize the colormap
-        cmap = pg.colormap.get('viridis')  # Choose a colormap
-        self.img_item.setLookupTable(cmap.getLookupTable(0.0, 1.0, self.num_prices), update=True)
+        cmap = self.get_colormap()  # Choose a colormap
+        self.img_item.setLookupTable(cmap.getLookupTable(0.0, 1.0, self.data.size), update=True)
         self.img_item.setLevels([np.min(self.data), np.max(self.data)])
 
-        print(np.min(self.data), np.max(self.data))
-
-        self.img_item.setPos(min(self.date_indices), min(self.price_indices))
+        self.img_item.setPos(self.x_min, self.y_min)
 
         self.view_box = self.plot.getViewBox()
 
@@ -81,8 +76,8 @@ class Heatmap(qtw.QWidget):
         return
 
     def get_price_range(self, num_steps):
-        self.lower = self.s0 * (1 - 0.3)
-        self.upper = self.s0 * (1 + 0.3)
+        self.lower = self.s0 * (1 - 0.1)
+        self.upper = self.s0 * (1 + 0.1)
 
         price_range = np.round(np.linspace(self.lower, self.upper, num=num_steps), 2)
         price_positions = np.arange(len(price_range)) # get indices of prices
@@ -107,36 +102,39 @@ class Heatmap(qtw.QWidget):
 
         values = np.zeros((len(self.date_range), len(self.prices)))
 
-        print(values.shape)
-
         for option, div_yield, position in zip(self.options, self.div_yields, self.positions):
             opt_type = option['Description'][-1].lower()
             k = option['Strike']
             iv = option['Volatility']/100 if option['Volatility'] < 200 else 2
 
-            for j, price in enumerate(self.prices):
-                for i, date in enumerate(self.date_range):
-                    dte = (len(self.date_range)-(i+1))/365
-                    if dte > 0:
+            print('dates:',self.date_range)
+            for i, date in enumerate(self.date_range):
+                dt = datetime.strptime(date, '%Y-%m-%d')
+                # days = ((dt - datetime.today()).days)/365 if ((dt - datetime.today()).days) > 0 else 0 # days to expiration
+                # seconds = ((dt - datetime.today()).seconds - (days*86400))/(365*86400) # seconds until expiration for 0DTE options
+                # dte = days + seconds
+                dte = (dt - datetime.today()).total_seconds()/(365*86400)
+                #dte = (len(self.date_range)-(i+1))/365
+                print("today",datetime.today(), "dte:",dte*365)
+                for j, price in enumerate(self.prices):
+                    if dte > 0.001:
                         val = american(opt_type,
-                                         price, 
-                                         k, 
-                                         dte,
-                                         self.r_f,
-                                         div_yield, 
-                                         iv)[0] # use option pricing library to get American option value
+                                            price, 
+                                            k, 
+                                            dte,
+                                            self.r_f,
+                                            div_yield, 
+                                            iv)[0] # use option pricing library to get American option value
                     else: # if T = 0 or if time has expired, we just take intrinsic value
                         if opt_type == 'c':
                             val = max(price - k, 0)
                         else:
                             val = max(k - price, 0)
-                    
                     if position == 'long':
                         values[i, j] += (val * 100)  # 100 shares per contract
                     elif position == 'short':
                         values[i, j] -= (val * 100)
 
-        print(values)
         return values
     
     def configure_plot(self):
@@ -149,7 +147,6 @@ class Heatmap(qtw.QWidget):
         xaxis.setTicks([xticks])
 
         yaxis = pg.AxisItem('left')
-        print(yticks)
         yaxis.setTicks([yticks])
 
         #axis.setLabel(rotation=45)
@@ -170,9 +167,9 @@ class Heatmap(qtw.QWidget):
         """
         Adds text annotations to each cell of the heatmap.
         """
-
-        for i in range(len(self.date_range)):
-            for j in range(len(self.prices)):
+        total = 0
+        for i in self.date_indices:
+            for j in self.price_indices:
                 # Calculate the center position of each cell
                 x = self.x_min + (j + 0.5) * (self.x_max - self.x_min) / len(self.prices)
                 y = self.y_min + (i + 0.5) * (self.y_max - self.y_min) / len(self.date_range)
@@ -182,13 +179,31 @@ class Heatmap(qtw.QWidget):
                 formatted_value = f"{value:.2f}"
                 
                 # Create a TextItem
-                text = pg.TextItem(text=formatted_value, anchor=(0.5, 0.5), color='white', border=None)
+                text = pg.TextItem(text=formatted_value, anchor=(0.5, 0.5), color='black', border=None)
                 
                 # Set the position of the TextItem
-                text.setPos(x, y)
+                text.setPos(i+0.5, j)
                 
                 # Add the TextItem to the plot
                 self.plot.addItem(text)
+
+                total += 1
+
+    
+    def get_colormap(self):
+        """
+        Returns a colormap for the heatmap.
+        """
+        positions = [0.0, 0.5, 1.0]  # Red at 0.0, White at 0.5, Green at 1.0
+        colors = [
+            (255, 0, 0),     # Red
+            (255, 255, 255), # White
+            (0, 255, 0)      # Green
+        ]
+        
+        # Create the custom colormap
+        cmap = pg.ColorMap(pos=positions, color=colors)
+        return cmap
 
     
     def add_color_bar(self, cmap):
