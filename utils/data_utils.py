@@ -94,7 +94,7 @@ class SchwabData:
         '''
         quote = self.client.quote(ticker).json()
 
-        return quote[ticker]['fundamental']['divYield']
+        return quote[ticker]['fundamental']['divYield']/100 # originally in percent
 
 
 class DummyData:

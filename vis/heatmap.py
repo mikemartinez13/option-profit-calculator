@@ -26,6 +26,10 @@ class Heatmap(qtw.QWidget):
         self.s0 = stock_price
         self.cost = cost
 
+        print(len(self.options))
+        print(self.div_yields)
+        print(self.positions)
+
         self.num_prices = 20
         # controls how many stock prices are displayed on the heatmap
 
@@ -37,7 +41,7 @@ class Heatmap(qtw.QWidget):
         self.setWindowTitle("Future Value Heatmap")
 
         self.x_min, self.x_max = min(self.date_indices), max(self.date_indices) + 1
-        self.y_min, self.y_max = min(self.price_indices)-.05, max(self.price_indices)*(1+.05)
+        self.y_min, self.y_max = min(self.price_indices)-0.5, max(self.price_indices)+0.5
 
         main_layout = qtw.QHBoxLayout()
         self.setLayout(main_layout)
@@ -101,20 +105,18 @@ class Heatmap(qtw.QWidget):
         '''
 
         values = np.zeros((len(self.date_range), len(self.prices)))
+        exp = datetime.strptime(max(self.date_range), '%Y-%m-%d').replace(hour=16, minute=0, second=0) # set time to 4pm for market close
 
         for option, div_yield, position in zip(self.options, self.div_yields, self.positions):
             opt_type = option['Description'][-1].lower()
+            print(opt_type)
             k = option['Strike']
             iv = option['Volatility']/100 if option['Volatility'] < 200 else 2
 
             print('dates:',self.date_range)
             for i, date in enumerate(self.date_range):
-                dt = datetime.strptime(date, '%Y-%m-%d')
-                # days = ((dt - datetime.today()).days)/365 if ((dt - datetime.today()).days) > 0 else 0 # days to expiration
-                # seconds = ((dt - datetime.today()).seconds - (days*86400))/(365*86400) # seconds until expiration for 0DTE options
-                # dte = days + seconds
-                dte = (dt - datetime.today()).total_seconds()/(365*86400)
-                #dte = (len(self.date_range)-(i+1))/365
+                dt = datetime.strptime(date, '%Y-%m-%d').replace(hour=12, minute=0, second=0) # set time to 4pm for market close
+                dte = (exp - dt).total_seconds()/(365*86400)
                 print("today",datetime.today(), "dte:",dte*365)
                 for j, price in enumerate(self.prices):
                     if dte > 0.001:
@@ -167,12 +169,11 @@ class Heatmap(qtw.QWidget):
         """
         Adds text annotations to each cell of the heatmap.
         """
-        total = 0
         for i in self.date_indices:
             for j in self.price_indices:
                 # Calculate the center position of each cell
-                x = self.x_min + (j + 0.5) * (self.x_max - self.x_min) / len(self.prices)
-                y = self.y_min + (i + 0.5) * (self.y_max - self.y_min) / len(self.date_range)
+                # x = self.x_min + (j + 0.5) * (self.x_max - self.x_min) / len(self.prices)
+                # y = self.y_min + (i + 0.5) * (self.y_max - self.y_min) / len(self.date_range)
                 
                 # Retrieve the value to annotate
                 value = self.data[i, j]
@@ -181,13 +182,9 @@ class Heatmap(qtw.QWidget):
                 # Create a TextItem
                 text = pg.TextItem(text=formatted_value, anchor=(0.5, 0.5), color='black', border=None)
                 
-                # Set the position of the TextItem
+                # Set position and add
                 text.setPos(i+0.5, j)
-                
-                # Add the TextItem to the plot
                 self.plot.addItem(text)
-
-                total += 1
 
     
     def get_colormap(self):
