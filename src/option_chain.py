@@ -68,6 +68,21 @@ class OptionChainWindow(qtw.QWidget):
         self.configure_left_layout(main_layout)
 
         self.tabs = QTabWidget()
+        self.tabs.setStyleSheet("""
+            QTabBar::tab {
+                background: #2E3440;      
+                color: #D8DEE9;          
+                padding: 10px;
+                border: 1px solid #4C566A; 
+                border-bottom: none;      
+                border-radius: 5px 5px 0 0; 
+            }
+
+            QTabBar::tab:selected {
+                background: #81A1C1;      
+                color: #ECEFF4;           
+            }
+        """)
         main_layout.addWidget(self.tabs, stretch = 3)
 
         self.configure_figure(main_layout)
@@ -102,7 +117,7 @@ class OptionChainWindow(qtw.QWidget):
         ticker_label = qtw.QLabel("Ticker:")
         self.ticker_input = QLineEdit()
         self.enter_ticker = QPushButton()
-
+        
         configure_button(self.enter_ticker, 
                          text="Enter",
                          command=self.get_ticker_data
@@ -204,9 +219,30 @@ class OptionChainWindow(qtw.QWidget):
 
         # Create the table view
         table_view = QTableView()
+        # table_view.setStyleSheet("background: #000000; color: white;")
+        table_view.setStyleSheet("""
+            QTableView {
+                background-color: #000000; 
+                color: white;              
+                gridline-color: #444444;   
+                selection-background-color: #555555; 
+            }
+
+            QHeaderView::section {
+                background-color: #333333; 
+                color: white;              
+                padding: 4px;              
+                border: 1px solid #555555; 
+                font-weight: bold;         
+            }
+
+            QHeaderView::section {
+                border: none;
+            }
+        """)
         table_view.setEditTriggers(qtw.QAbstractItemView.NoEditTriggers)  # Make table read-only
         table_view.setSelectionBehavior(qtw.QAbstractItemView.SelectRows)
-        table_view.setAlternatingRowColors(True)
+        #table_view.setAlternatingRowColors(True)
         table_view.setSortingEnabled(True)  # Enable sorting
 
         # Create and set the model
