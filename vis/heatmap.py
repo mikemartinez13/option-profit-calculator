@@ -25,11 +25,6 @@ class Heatmap(qtw.QWidget):
         self.positions = positions
         self.s0 = stock_price
         self.cost = cost
-
-        print(len(self.options))
-        print(self.div_yields)
-        print(self.positions)
-
         self.num_prices = 20
         # controls how many stock prices are displayed on the heatmap
 
@@ -45,10 +40,19 @@ class Heatmap(qtw.QWidget):
 
         main_layout = qtw.QHBoxLayout()
         self.setLayout(main_layout)
+
+        self.__configure_plot(main_layout)
+        self.__configure_buttons(main_layout)
         
+        return
+    
+    def __configure_plot(self, layout: qtw.QHBoxLayout):
+        '''
+        Configure the plot layout.
+        '''
         # Create a GraphicsLayoutWidget
         self.graph_widget = pg.GraphicsLayoutWidget()
-        main_layout.addWidget(self.graph_widget)
+        layout.addWidget(self.graph_widget)
         
         # Add a plot to the GraphicsLayoutWidget
         
@@ -58,7 +62,7 @@ class Heatmap(qtw.QWidget):
         # Create an ImageItem
         self.img_item = pg.ImageItem()
         
-        self.plot = self.configure_plot() # adds plot to 
+        self.plot = self.__label_plot(self.img_item) # adds plot to 
         #self.plot.addItem(self.img_item)
 
         # Set image data
@@ -77,7 +81,56 @@ class Heatmap(qtw.QWidget):
 
         # Add annotations to the heatmap
         self.add_annotations()
+
         return
+
+    def __label_plot(self, img: pg.ImageItem) -> pg.PlotItem:
+        
+        xticks = [ (pos+0.5, date) for pos, date in zip(self.date_indices, self.date_range) ]
+        yticks = [ (pos, str(price)) for pos, price in enumerate(self.prices) ]
+
+        # Create a custom AxisItem
+        xaxis = pg.AxisItem('bottom')
+        xaxis.setTicks([xticks])
+
+        yaxis = pg.AxisItem('left')
+        yaxis.setTicks([yticks])
+
+        #axis.setLabel(rotation=45)
+
+        plot = self.graph_widget.addPlot(axisItems={'bottom': xaxis, 'left': yaxis})
+    
+        # Re-add the ImageItem to the new plot
+        plot.addItem(img)
+
+        plot.setLabel('left', 'Stock Price ($)')
+        plot.setLabel('bottom', 'Date')
+        plot.setTitle("Option Strategy Value Over Time")
+
+        return plot
+
+    def __configure_buttons(self, layout: qtw.QHBoxLayout):
+        '''
+        Configure the buttons layout.
+        '''
+        button_layout = qtw.QVBoxLayout()
+        layout.addLayout(button_layout)
+
+        # Add a button to reset the view
+        profit_button = qtw.QPushButton("Toggle between Profit and Value")
+        profit_button.clicked.connect(self.profit_value_toggle)
+        button_layout.addWidget(profit_button)
+
+        # # Add a button to save the heatmap
+        # save_button = qtw.QPushButton("Save Heatmap")
+        # save_button.clicked.connect(self.save_heatmap)
+        # button_layout.addWidget(save_button)
+
+        return
+
+    ##############################
+    ##### Plotting Functions #####
+    ##############################
 
     def get_price_range(self, num_steps):
         self.lower = self.s0 * (1 - 0.1)
@@ -115,7 +168,10 @@ class Heatmap(qtw.QWidget):
 
             print('dates:',self.date_range)
             for i, date in enumerate(self.date_range):
-                dt = datetime.strptime(date, '%Y-%m-%d').replace(hour=12, minute=0, second=0) # set time to 4pm for market close
+                if i == 0:
+                    dt = datetime.today()
+                else:
+                    dt = datetime.strptime(date, '%Y-%m-%d').replace(hour=16, minute=0, second=0) # set time to 4pm for market close
                 dte = (exp - dt).total_seconds()/(365*86400)
                 print("today",datetime.today(), "dte:",dte*365)
                 for j, price in enumerate(self.prices):
@@ -138,32 +194,6 @@ class Heatmap(qtw.QWidget):
                         values[i, j] -= (val * 100)
 
         return values
-    
-    def configure_plot(self):
-        
-        xticks = [ (pos+0.5, date) for pos, date in zip(self.date_indices, self.date_range) ]
-        yticks = [ (pos, str(price)) for pos, price in enumerate(self.prices) ]
-
-        # Create a custom AxisItem
-        xaxis = pg.AxisItem('bottom')
-        xaxis.setTicks([xticks])
-
-        yaxis = pg.AxisItem('left')
-        yaxis.setTicks([yticks])
-
-        #axis.setLabel(rotation=45)
-
-        plot = self.graph_widget.addPlot(axisItems={'bottom': xaxis, 'left': yaxis})
-    
-        # Re-add the ImageItem to the new plot
-        plot.addItem(self.img_item)
-
-        plot.setLabel('left', 'Stock Price ($)')
-        plot.setLabel('bottom', 'Date')
-        plot.setTitle("Option Strategy Value Over Time")
-
-        return plot
-    
 
     def add_annotations(self):
         """
@@ -269,4 +299,14 @@ class Heatmap(qtw.QWidget):
             self.view_box.setYRange(new_y_range[0], new_y_range[1], padding=0)
             self.view_box.blockSignals(False)
     
+    ##############################
+    ###### Button Functions ######
+    ##############################
+
+    def profit_value_toggle(self):
+        '''
+        Toggle between profit and value.
+        '''
+        pass
+
 
