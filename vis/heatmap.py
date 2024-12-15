@@ -26,17 +26,19 @@ class Heatmap(qtw.QWidget):
         self.s0 = stock_price
         self.cost = cost
         self.num_prices = 20
+
+        self.value_toggle = True
         # controls how many stock prices are displayed on the heatmap
 
         self.prices, self.price_indices = self.get_price_range(self.num_prices)
         self.date_range, self.date_indices = self.generate_dates()
 
+        self.x_min, self.x_max = min(self.date_indices), max(self.date_indices) + 1
+        self.y_min, self.y_max = min(self.price_indices)-0.5, max(self.price_indices)+0.5
+
         # Figure configurations
         self.setGeometry(100, 100, 800, 600)
         self.setWindowTitle("Future Value Heatmap")
-
-        self.x_min, self.x_max = min(self.date_indices), max(self.date_indices) + 1
-        self.y_min, self.y_max = min(self.price_indices)-0.5, max(self.price_indices)+0.5
 
         main_layout = qtw.QHBoxLayout()
         self.setLayout(main_layout)
@@ -57,30 +59,21 @@ class Heatmap(qtw.QWidget):
         # Add a plot to the GraphicsLayoutWidget
         
         # Generate sample data for the heatmap
-        self.data = self.generate_data()
+        self.value_matrix, self.profit_matrix = self.generate_data()
         
         # Create an ImageItem
         self.img_item = pg.ImageItem()
         
         self.plot = self.__label_plot(self.img_item) # adds plot to 
         #self.plot.addItem(self.img_item)
-
-        # Set image data
-        self.img_item.setImage(self.data)
-
-        # Customize the colormap
-        cmap = self.get_colormap()  # Choose a colormap
-        self.img_item.setLookupTable(cmap.getLookupTable(0.0, 1.0, self.data.size), update=True)
-        self.img_item.setLevels([np.min(self.data), np.max(self.data)])
-
-        self.img_item.setPos(self.x_min, self.y_min)
-
-        self.view_box = self.plot.getViewBox()
+        
+        # Initialize annotations
+        self.annotations = []
+        
+        # Set the data for the heatmap
+        self.__set_plot_data(self.value_matrix) 
 
         self.set_zoom_limits()
-
-        # Add annotations to the heatmap
-        self.add_annotations()
 
         return
 
@@ -117,7 +110,7 @@ class Heatmap(qtw.QWidget):
         layout.addLayout(button_layout)
 
         # Add a button to reset the view
-        profit_button = qtw.QPushButton("Toggle between Profit and Value")
+        profit_button = qtw.QPushButton("Toggle between Value/Profit")
         profit_button.clicked.connect(self.profit_value_toggle)
         button_layout.addWidget(profit_button)
 
@@ -127,6 +120,28 @@ class Heatmap(qtw.QWidget):
         # button_layout.addWidget(save_button)
 
         return
+    
+    def __set_plot_data(self, data):
+        # Set image data
+        self.img_item.setImage(data)
+
+        # Customize the colormap
+        cmap = self.get_colormap()  # Choose a colormap
+        self.img_item.setLookupTable(cmap.getLookupTable(0.0, 1.0, data.size), update=True)
+        self.img_item.setLevels([np.min(data), np.max(data)])
+        
+        # Remove previous annotations if any
+        for text_item in self.annotations: 
+            self.plot.removeItem(text_item)
+        self.annotations.clear()
+
+        self.img_item.setPos(self.x_min, self.y_min)
+
+        self.view_box = self.plot.getViewBox()
+
+        # Add annotations to the heatmap
+        self.add_annotations()
+
 
     ##############################
     ##### Plotting Functions #####
@@ -158,6 +173,7 @@ class Heatmap(qtw.QWidget):
         '''
 
         values = np.zeros((len(self.date_range), len(self.prices)))
+
         exp = datetime.strptime(max(self.date_range), '%Y-%m-%d').replace(hour=16, minute=0, second=0) # set time to 4pm for market close
 
         for option, div_yield, position in zip(self.options, self.div_yields, self.positions):
@@ -193,7 +209,8 @@ class Heatmap(qtw.QWidget):
                     elif position == 'short':
                         values[i, j] -= (val * 100)
 
-        return values
+        profit = values - self.cost
+        return values, profit
 
     def add_annotations(self):
         """
@@ -206,7 +223,11 @@ class Heatmap(qtw.QWidget):
                 # y = self.y_min + (i + 0.5) * (self.y_max - self.y_min) / len(self.date_range)
                 
                 # Retrieve the value to annotate
-                value = self.data[i, j]
+                if self.value_toggle:
+                    value = self.value_matrix[i, j]
+                else:
+                    value = self.profit_matrix[i, j]
+
                 formatted_value = f"{value:.2f}"
                 
                 # Create a TextItem
@@ -215,6 +236,8 @@ class Heatmap(qtw.QWidget):
                 # Set position and add
                 text.setPos(i+0.5, j)
                 self.plot.addItem(text)
+
+                self.annotations.append(text) # keep track of annotations
 
     
     def get_colormap(self):
@@ -233,14 +256,14 @@ class Heatmap(qtw.QWidget):
         return cmap
 
     
-    def add_color_bar(self, cmap):
-        # Create a color bar
-        color_bar = pg.GradientEditorItem()
-        color_bar.restoreState({'mode': 'rgb', 'ticks': [(0.0, (0, 0, 255, 255)),
-                                                         (0.5, (0, 255, 0, 255)),
-                                                         (1.0, (255, 0, 0, 255))]})
-        self.graph_widget.nextRow()
-        self.graph_widget.addItem(color_bar)
+    # def add_color_bar(self, cmap):
+    #     # Create a color bar
+    #     color_bar = pg.GradientEditorItem()
+    #     color_bar.restoreState({'mode': 'rgb', 'ticks': [(0.0, (0, 0, 255, 255)),
+    #                                                      (0.5, (0, 255, 0, 255)),
+    #                                                      (1.0, (255, 0, 0, 255))]})
+    #     self.graph_widget.nextRow()
+    #     self.graph_widget.addItem(color_bar)
     
         
     def set_zoom_limits(self):
@@ -307,6 +330,11 @@ class Heatmap(qtw.QWidget):
         '''
         Toggle between profit and value.
         '''
-        pass
+        if self.value_toggle:
+            self.value_toggle = False
+            self.__set_plot_data(self.profit_matrix)
+        else:
+            self.value_toggle = True
+            self.__set_plot_data(self.value_matrix)
 
 
