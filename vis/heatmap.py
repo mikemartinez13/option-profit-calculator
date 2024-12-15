@@ -30,7 +30,10 @@ class Heatmap(qtw.QWidget):
         self.value_toggle = True
         # controls how many stock prices are displayed on the heatmap
 
-        self.prices, self.price_indices = self.get_price_range(self.num_prices)
+        # Default price range
+        self.prices, self.price_indices = self.get_price_range(self.s0 * (1 - 0.1), 
+                                                            self.s0 * (1 + 0.1), 
+                                                            self.num_prices)
         self.date_range, self.date_indices = self.generate_dates()
 
         self.x_min, self.x_max = min(self.date_indices), max(self.date_indices) + 1
@@ -44,9 +47,16 @@ class Heatmap(qtw.QWidget):
         self.setLayout(main_layout)
 
         self.__configure_plot(main_layout)
-        self.__configure_buttons(main_layout)
+        right_layout = self.__configure_buttons(main_layout)
+        self.__configure_controls(right_layout)
         
         return
+
+
+    ##############################
+    ##### Plotting Functions #####
+    ##############################
+
     
     def __configure_plot(self, layout: qtw.QHBoxLayout):
         '''
@@ -64,8 +74,7 @@ class Heatmap(qtw.QWidget):
         # Create an ImageItem
         self.img_item = pg.ImageItem()
         
-        self.plot = self.__label_plot(self.img_item) # adds plot to 
-        #self.plot.addItem(self.img_item)
+        self.plot = self.__label_plot(self.img_item) # adds labels to plot
         
         # Initialize annotations
         self.annotations = []
@@ -83,15 +92,16 @@ class Heatmap(qtw.QWidget):
         yticks = [ (pos, str(price)) for pos, price in enumerate(self.prices) ]
 
         # Create a custom AxisItem
-        xaxis = pg.AxisItem('bottom')
-        xaxis.setTicks([xticks])
+        self.xaxis = pg.AxisItem('bottom')
+        self.xaxis.setTicks([xticks])
 
-        yaxis = pg.AxisItem('left')
-        yaxis.setTicks([yticks])
+        self.yaxis = pg.AxisItem('left')
+        self.yaxis.setTicks([yticks])
 
         #axis.setLabel(rotation=45)
 
-        plot = self.graph_widget.addPlot(axisItems={'bottom': xaxis, 'left': yaxis})
+        plot = self.graph_widget.addPlot(axisItems={'bottom': self.xaxis, 
+                                                    'left': self.yaxis})
     
         # Re-add the ImageItem to the new plot
         plot.addItem(img)
@@ -119,6 +129,49 @@ class Heatmap(qtw.QWidget):
         # save_button.clicked.connect(self.save_heatmap)
         # button_layout.addWidget(save_button)
 
+        return button_layout
+
+    def __configure_controls(self, layout: qtw.QVBoxLayout):
+        '''
+        Configure controls for setting stock price ranges, .
+        '''
+        # Add a slider to control the number of stock prices
+        # price_slider = qtw.QSlider()
+        # price_slider.setOrientation(qtc.Qt.Horizontal)
+        # price_slider.setRange(10, 70)
+        # price_slider.setValue(self.num_prices)
+        # price_slider.valueChanged.connect(self.update_prices)
+        # control_layout.addWidget(price_slider)
+
+        range_label_y = qtw.QLabel("Set Stock Price Range:")
+        layout.addWidget(range_label_y)
+
+        # Stock prices min
+        y_min_label = qtw.QLabel("Min:")
+        self.y_min_input = qtw.QDoubleSpinBox()
+        self.y_min_input.setDecimals(2)
+        self.y_min_input.setRange(0.01, np.round(self.s0*4))
+        self.y_min_input.setValue(min(self.prices))
+        self.y_min_input.setSingleStep(0.5)
+        self.y_min_input.setKeyboardTracking(False)  # Disable live tracking
+        self.y_min_input.editingFinished.connect(self.update_y_range)
+
+        layout.addWidget(y_min_label)
+        layout.addWidget(self.y_min_input)
+
+        # Stock prices max
+        y_max_label = qtw.QLabel("Max:")
+        self.y_max_input = qtw.QDoubleSpinBox()
+        self.y_max_input.setDecimals(2)
+        self.y_max_input.setRange(0.01, np.round(self.s0*4))
+        self.y_max_input.setValue(max(self.prices))
+        self.y_max_input.setSingleStep(0.1)
+        self.y_max_input.setKeyboardTracking(False) 
+        self.y_max_input.editingFinished.connect(self.update_y_range)
+
+        layout.addWidget(y_max_label)
+        layout.addWidget(self.y_max_input)
+
         return
     
     def __set_plot_data(self, data):
@@ -142,16 +195,42 @@ class Heatmap(qtw.QWidget):
         # Add annotations to the heatmap
         self.add_annotations()
 
+        return
+
+    def __update_plot(self):
+        '''
+        Update the plot with new data.
+        '''
+        self.value_matrix, self.profit_matrix = self.generate_data()
+        
+        # Set the data for the heatmap
+        if self.value_toggle:
+            self.__set_plot_data(self.value_matrix) 
+        else:
+            self.__set_plot_data(self.profit_matrix)
+
+        return
+
+    def __update_yticks(self):
+        '''
+        Update the y-axis (stock prices) ticks.
+        '''
+        yticks = [ (pos, str(price)) for pos, price in enumerate(self.prices) ]
+        self.yaxis.setTicks([yticks])
+
+        return
+
 
     ##############################
-    ##### Plotting Functions #####
+    ####### Data Functions #######
     ##############################
 
-    def get_price_range(self, num_steps):
-        self.lower = self.s0 * (1 - 0.1)
-        self.upper = self.s0 * (1 + 0.1)
 
-        price_range = np.round(np.linspace(self.lower, self.upper, num=num_steps), 2)
+    def get_price_range(self, lower: float, upper: float, num_steps: int) -> tuple[np.array, np.array]:
+        '''
+        Get a range of stock prices. Also gets the indices of the prices.
+        '''
+        price_range = np.round(np.linspace(lower, upper, num=num_steps), 2)
         price_positions = np.arange(len(price_range)) # get indices of prices
 
         return price_range, price_positions
@@ -322,9 +401,11 @@ class Heatmap(qtw.QWidget):
             self.view_box.setYRange(new_y_range[0], new_y_range[1], padding=0)
             self.view_box.blockSignals(False)
     
+
     ##############################
-    ###### Button Functions ######
+    #### Buttons and Controls ####
     ##############################
+
 
     def profit_value_toggle(self):
         '''
@@ -336,5 +417,32 @@ class Heatmap(qtw.QWidget):
         else:
             self.value_toggle = True
             self.__set_plot_data(self.value_matrix)
+
+    
+    def update_y_range(self):
+        """
+        Updates the Y-axis range based on user input.
+        """
+        new_min = self.y_min_input.value()
+        new_max = self.y_max_input.value()
+
+        if new_min >= new_max:
+            # Optionally, show a warning or reset to previous valid values
+            qtw.QMessageBox.warning(self, "Invalid Range", "Y-axis min must be less than max.")
+            self.y_min_input.blockSignals(True)
+            self.y_max_input.blockSignals(True)
+            self.y_min_input.setValue(min(self.prices))
+            self.y_max_input.setValue(max(self.prices))
+            self.y_min_input.blockSignals(False)
+            self.y_max_input.blockSignals(False)
+        else:
+            self.prices, self.price_indices = self.get_price_range(new_min, 
+                                                                new_max, 
+                                                                self.num_prices)
+
+            self.__update_plot()
+            self.__update_yticks()
+
+        return
 
 
