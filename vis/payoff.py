@@ -33,15 +33,15 @@ def convert_dates(dates: list):
 # Functions to graph possible payoff of options strategies
 
 def long_call(S, K, Price):
-    P = np.maximum(S-K, 0) - Price
-    return P
+    P = np.maximum(S-K, 0) - (Price)
+    return P*100
 
 def short_call(S, K, Price):
     return -1.0 * long_call(S, K, Price)
 
 def long_put(S, K, Price):
-    P = np.maximum(K-S, 0) - Price
-    return P
+    P = np.maximum(K-S, 0) - (Price)
+    return P*100
 
 def short_put(S, K, Price):
      return -1.0 * long_put(S, K, Price)
@@ -145,17 +145,17 @@ class OptionPayoffPlot(qtw.QWidget):
         Returns the limits for X and Y axes.
         """
         # Adjusting min and maxes based on s0
-        view_box.setAspectLocked(True, ratio = 1)
+        view_box.setAspectLocked(True, ratio = 100)
 
         x_min = 0
         if not stock_price:
             x_max = 1000
-            y_min = -500
-            y_max = 500
+            y_min = -500*100
+            y_max = 500*100
         else:
             x_max = stock_price * 6
-            y_min = -stock_price * 3
-            y_max = stock_price * 3
+            y_min = -stock_price * 3 * 100
+            y_max = stock_price * 3 * 100
 
         # Set the limits on the ViewBox
         view_box.setLimits(xMin=x_min, xMax=x_max, yMin=y_min, yMax=y_max)
@@ -217,6 +217,13 @@ class OptionPayoffPlot(qtw.QWidget):
                                      name=name)
         
         self.lines.append(line) # to avoid garbage collection
+        
+        return
+    
+    def remove_vlines(self) -> None:
+        for line in self.lines:
+            self.plot_widget.removeItem(line)
+        self.lines.clear()
         
         return
 
@@ -297,6 +304,8 @@ class OptionPayoffPlot(qtw.QWidget):
 
         self.positive_curve.setData([], [])
         self.negative_curve.setData([], [])
+
+        self.remove_vlines()
 
         self.__set_plot_range(self.view_box)
 

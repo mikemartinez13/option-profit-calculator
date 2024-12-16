@@ -122,7 +122,9 @@ class DummyData:
                 df=pd.DataFrame(records)
                 opt_dict[type.split('ExpDateMap')[0]+'s'][convert_date(expdate)] = filter_chain(df)
 
-        return opt_dict
+        interest_rate = 0.045
+
+        return opt_dict, interest_rate
         
 
     def get_price(self, ticker:str):
@@ -130,6 +132,13 @@ class DummyData:
         Get last price of the security.
         '''
         return 229.40
+    
+    def get_div_yield(self, ticker:str):
+        '''
+        Get the current interest rate.
+        '''
+
+        return 0.403/100 # originally in percent
 
 
 

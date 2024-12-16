@@ -372,6 +372,7 @@ class OptionChainWindow(qtw.QWidget):
             print(traceback.format_exc())
             return 
 
+        print(data)
         self.calls_data = data['calls'] # data initialized
         self.puts_data = data['puts']
         self.interest_rate = r_f/100
