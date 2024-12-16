@@ -50,6 +50,7 @@ class OptionChainWindow(qtw.QWidget):
             self.engine = SchwabData()
             
         self.display = OptionPayoffPlot()
+
         self.heatmap = None
 
         self.ticker = None
@@ -136,11 +137,12 @@ class OptionChainWindow(qtw.QWidget):
 
         right_layout = qtw.QVBoxLayout()
 
-        self.canvas = QWebEngineView()
-        self.canvas.setHtml(self.display.html)
+        # self.canvas = QWebEngineView()
+        # self.canvas.setHtml(self.display.html)
         # self.update_plot()
         #self.canvas.loadFinished.connect(self.on_load_finished)
 
+        right_layout.addWidget(self.display)
         self.option_description = QLabel("No option selected.")
 
         self.long_button = QPushButton()
@@ -165,7 +167,6 @@ class OptionChainWindow(qtw.QWidget):
                             command=self.show_heatmap
                         )
         
-        right_layout.addWidget(self.canvas)
         right_layout.addWidget(self.option_description)
         right_layout.addWidget(self.long_button)
         right_layout.addWidget(self.short_button)
@@ -199,8 +200,9 @@ class OptionChainWindow(qtw.QWidget):
     
     def update_plot(self):
         
-        self.canvas.setHtml(self.display.html)
-        return 
+        # self.canvas.setHtml(self.display.html)
+        # return 
+        pass
 
 
     def add_tab(self, expiration_date: str, calls_df: pd.DataFrame, puts_df: pd.DataFrame):
@@ -385,6 +387,8 @@ class OptionChainWindow(qtw.QWidget):
             self.add_tab(expdate, self.calls_data[expdate], self.puts_data[expdate])
 
         self.ticker_input.clear()
+
+        self.display.add_vline(self.engine.get_price(self.ticker), name="Current Price")
 
         return
 

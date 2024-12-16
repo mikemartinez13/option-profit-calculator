@@ -13,6 +13,9 @@ import plotly.offline as offline
 import os
 import tempfile
 
+import pyqtgraph as pg
+from PyQt5 import QtWidgets as qtw
+
 def convert_dates(dates: list):
     '''
     Converts list of dates returned by 
@@ -73,7 +76,7 @@ def plot_payoff(stock_series, payoff_series):
     return fig
 
 
-class OptionPayoffPlot:
+class OptionPayoffPlot(qtw.QWidget):
     '''
     Class to plot payoff of options strategies.
 
@@ -81,65 +84,152 @@ class OptionPayoffPlot:
     '''
 
     def __init__(self):
+        super().__init__()
 
         self.xdata = np.array([])
         self.ydata = np.array([])
 
-        self.layout = go.Layout(
-            xaxis=dict(
-                range=[0, 1000],  # Fixed range without allowing panning beyond
-                autorange=True,  # Disables auto-ranging
-                rangemode='tozero'  # Fixed range without allowing panning beyond
-            ),
-            yaxis=dict(
-                range=[-1000, 1000],
-                autorange=True,
-                rangemode='tozero'
-            )
-        )
+        # Create a vertical layout
+        layout = qtw.QVBoxLayout()
+        self.setLayout(layout)
+        
+        # Create a PyQtGraph PlotWidget
+        self.plot_widget = pg.PlotWidget()
+        layout.addWidget(self.plot_widget)
+        
+        # Create two separate curves for positive and negative profits
+        self.positive_curve = self.plot_widget.plot(pen=pg.mkPen(color='g', width=2), name='Profit >= 0')
+        self.negative_curve = self.plot_widget.plot(pen=pg.mkPen(color='r', width=2), name='Profit < 0')
 
-        self.fig = go.Figure(layout=self.layout)
+        self.__customize_plot(self.plot_widget)
+        
+        self.lines = []
+        
+        # Set initial ranges
+        # self.plot_widget.setXRange(0, 1000)
+        # self.plot_widget.setYRange(-1000, 1000)
 
-        self.positive_trace = go.Scatter(
-            x=[],
-            y=[],
-            mode='lines',
-            line=dict(color='green'),
-            name='Profit >= 0'
-        )
-        self.negative_trace = go.Scatter(
-            x=[],
-            y=[],
-            mode='lines',
-            line=dict(color='red'),
-            name='Profit < 0'
-        )
-
-        self.fig.add_trace(self.positive_trace)
-        self.fig.add_trace(self.negative_trace)
-
-        self.fig.update_layout(
-            title='Strategy Payoff Diagram',
-            xaxis_title='Stock Price at Expiration ($)',
-            yaxis_title='Profit ($)',
-            showlegend=True,
-            template='plotly',
-            hovermode='closest'
-        )
-
-        self.html = self.generate_html() # initialize temp file path
+        self.view_box = self.plot_widget.getPlotItem().getViewBox()
+        self.x_min, self.x_max, self.y_min, self.y_max = self.__set_plot_range(self.view_box)
 
         return
+
+    def __customize_plot(self, plot_widget: pg.PlotWidget) -> None:
+        """
+        Customizes the appearance of the PlotWidget.
+        """
+        # Set the background color
+        plot_widget.setBackground('k')
+        
+        # Show grid lines
+        plot_widget.showGrid(x=True, y=True, alpha=0.3)
+        
+        # Set axis labels and title
+        plot_widget.setLabel('left', 'Profit ($)', color='w', size=14)
+        plot_widget.setLabel('bottom', 'Stock Price at Expiration ($)', color='w', size=14)
+        plot_widget.setTitle('Strategy Payoff Diagram', color='w', size='14pt')
+        
+        # Customize the appearance of the axes
+        plot_widget.getPlotItem().getAxis('left').setTextPen(pg.mkPen(color='w'))
+        plot_widget.getPlotItem().getAxis('bottom').setTextPen(pg.mkPen(color='w'))
+        plot_widget.getPlotItem().getAxis('left').setTickPen(pg.mkPen(color='w'))
+        plot_widget.getPlotItem().getAxis('bottom').setTickPen(pg.mkPen(color='w'))
+
+        # Add a legend
+        self.plot_widget.addLegend()
     
+    def __set_plot_range(self, view_box: pg.ViewBox, stock_price=None) -> tuple[float, float, float, float]:
+        """
+        Sets the minimum and maximum limits for zooming on both X and Y axes.
+        Modifies the ViewBox object to enforce these limits.
+        Returns the limits for X and Y axes.
+        """
+        # Adjusting min and maxes based on s0
+        view_box.setAspectLocked(True, ratio = 1)
+
+        x_min = 0
+        if not stock_price:
+            x_max = 1000
+            y_min = -500
+            y_max = 500
+        else:
+            x_max = stock_price * 6
+            y_min = -stock_price * 3
+            y_max = stock_price * 3
+
+        # Set the limits on the ViewBox
+        view_box.setLimits(xMin=x_min, xMax=x_max, yMin=y_min, yMax=y_max)
+        
+        # Set the initial view range
+        if not stock_price:
+            self.plot_widget.setXRange(0, 1000)
+        else:
+            self.plot_widget.setXRange(stock_price*(1-0.2), stock_price*(1+0.2))
+        #view_box.setRange(xRange=(self.s0*(1-0.2), self.s0*(1+0.2)), yRange=(-self.y_min, self.y_max))
+        
+        # Disable automatic range adjustment
+        view_box.setAutoVisible(x=False, y=False)
+        
+        # Connect signals to enforce limits during interactions
+        view_box.sigRangeChanged.connect(self.__on_range_changed)
+
+        return x_min, x_max, y_min, y_max
+
+    def __on_range_changed(self):
+        """
+        Slot to handle range changes and enforce zoom limits.
+        """
+        # Get the current range
+        view_range = self.view_box.viewRange()
+        x_range, y_range = view_range
+        
+        # Initialize flags to check if limits are exceeded
+        needs_update = False
+        new_x_range = list(x_range)
+        new_y_range = list(y_range)
+        
+        # Check and adjust X-axis
+        if new_x_range[0] < self.x_min:
+            new_x_range[0] = self.x_min
+            needs_update = True
+        if new_x_range[1] > self.x_max:
+            new_x_range[1] = self.x_max
+            needs_update = True
+        
+        # Check and adjust Y-axis
+        if new_y_range[0] < self.y_min:
+            new_y_range[0] = self.y_min
+            needs_update = True
+        if new_y_range[1] > self.y_max:
+            new_y_range[1] = self.y_max
+            needs_update = True
+        
+        # If limits are exceeded, update the view range
+        if needs_update:
+            self.view_box.blockSignals(True)  # Prevent recursive calls
+            self.view_box.setXRange(new_x_range[0], new_x_range[1], padding=0)
+            self.view_box.setYRange(new_y_range[0], new_y_range[1], padding=0)
+            self.view_box.blockSignals(False)
+
+    def add_vline(self, x:float, name:str) -> None:
+        line = self.plot_widget.plot([x, x], [self.y_min, self.y_max], 
+                                     pen=pg.mkPen(color='w', width=2), 
+                                     name=name)
+        
+        self.lines.append(line) # to avoid garbage collection
+        
+        return
+
     def generate_html(self):
         """
         Generates the HTML string for the current Plotly figure.
         """
-        html = '<html><body>'
-        html += offline.plot(self.fig, output_type='div', include_plotlyjs='cdn')# config=config)
-        html += '</body></html>'
+        # html = '<html><body>'
+        # html += offline.plot(self.fig, output_type='div', include_plotlyjs='cdn')# config=config)
+        # html += '</body></html>'
 
-        return html
+        # return html
+        pass
 
     def add_option(self, option: dict, opt_type:str, buy: bool, s0: float) -> None:
         '''
@@ -147,6 +237,7 @@ class OptionPayoffPlot:
         '''
 
         self.xdata = get_stock_prices(s0)
+        self.s0 = s0
 
         if opt_type == 'call':
             if buy:
@@ -169,6 +260,7 @@ class OptionPayoffPlot:
             self.ydata = payoff_series
 
         self.update_traces()
+        self.__set_plot_range(self.view_box, s0)
         
         return 
     
@@ -176,24 +268,18 @@ class OptionPayoffPlot:
         '''
         Splits the data into positive and negative segments and updates the Plotly traces.
         '''
-        # Positive profits
-        pos_x, pos_y = [], []
-        # Negative profits
-        neg_x, neg_y = [], []
+        pos_mask = self.ydata >= 0
+        neg_mask = self.ydata < 0
         
-        for x, y in zip(self.xdata, self.ydata):
-            if y >= 0:
-                pos_x.append(x)
-                pos_y.append(y)
-            else:
-                neg_x.append(x)
-                neg_y.append(y)
+        pos_x = self.xdata[pos_mask]
+        pos_y = self.ydata[pos_mask]
         
-        # Update figure and plot
-        self.fig.update_traces(x=pos_x, y=pos_y, selector=dict(name='Profit >= 0'))
-        self.fig.update_traces(x=neg_x, y=neg_y, selector=dict(name='Profit < 0'))
-
-        self.html = self.generate_html()
+        neg_x = self.xdata[neg_mask]
+        neg_y = self.ydata[neg_mask]
+        
+        # Update the curves
+        self.positive_curve.setData(pos_x, pos_y)
+        self.negative_curve.setData(neg_x, neg_y)
 
         return 
     
@@ -204,17 +290,14 @@ class OptionPayoffPlot:
         self.xdata = np.array([])
         self.ydata = np.array([])
 
-        self.fig.update_traces(x=[], y=[], selector=dict(name='Profit >= 0'))
-        self.fig.update_traces(x=[], y=[], selector=dict(name='Profit < 0'))
+        # self.fig.update_traces(x=[], y=[], selector=dict(name='Profit >= 0'))
+        # self.fig.update_traces(x=[], y=[], selector=dict(name='Profit < 0'))
         
-        self.html = self.generate_html()
+        # self.html = self.generate_html()
+
+        self.positive_curve.setData([], [])
+        self.negative_curve.setData([], [])
+
+        self.__set_plot_range(self.view_box)
 
         return
-
-
-if __name__ == '__main__':
-    S_current = 418
-    S = get_stock_prices(S_current)
-    P1 = long_call(S, 400, 130)
-    fig = plot_payoff(S, P1)
-    plt.savefig('long_call.png')
