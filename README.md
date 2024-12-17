@@ -13,20 +13,24 @@ Of course, this is too good to be true. You probably don't have a friend at Appl
 
 All of this price action can be visualized with plots. Notice the plot for a long call strategy (buying a call): 
 
-![longcall](project-writeup/Long-Call.jpg)
+![longcall](project-writeup/assets/Long-Call.jpg)
+Sourced from [optionclue](https://optionclue.com/en/tradinglossary/long-call/)
 
 Going back to our previous example, the "Strike price" points to $260. Notice that before that, the option graph is constant. For our example, this would be constant at -$15, the premium you paid for the option. After that, the value of the contract increases 1:1 with the price of the stock. Notice there's a break-even point _after_ the strike price, where profit is 0. Intuitively, this means your underlying stock not only needs to make it past $K$, but the stock price needs to inrease enough to offset the upfront cost of the option. The breakeven point is $S$=$260.15 for our previous example. 
 
 The plot for a long put strategy is similar (buying a put):
 
-![longput](project-writeup/Long-Put.jpg)
+![longput](project-writeup/assets/Long-Put.jpg)
+Sourced from [optionclue](https://optionclue.com/en/tradinglossary/long-put/)
 
 Notice in the put graph, we profit if the stock price _falls below_ $K$, and we lose the initial investment otherwise. You might do this if your friend told you on Monday that Apple's whole executive board was going to resign on Wednesday, so you guessed the stock would drop. 
 
 We've only been talking about buying options so far, but you can also be the seller in the option transaction as well. What does it look like when you sell (or "short") an option? The plots are instructive: 
 
-![shortcall](project-writeup/Short-Call.jpg)
-![shortput](project-writeup/Short-Put.jpg)
+![shortcall](project-writeup/assets/Short-Call.jpg)
+Sourced from [optionclue](https://optionclue.com/en/tradinglossary/short-call/)
+![shortput](project-writeup/assets/Short-Put.jpg)
+Sourced from [optionclue](https://optionclue.com/en/tradinglossary/short-put/)
 
 Instead of paying a premium up front we _receive_ a premium up front. But notice if the stock rises (or falls) past $K$, we lose... and we keep losing proportionally to how far the stock goes! This type of strategy is called a "Naked Call" (or a "Naked Put"), and is sometimes compared to picking up pennies in front of a steamroller. You can get nice premiums over time if you sell them many times over, but one bad event can really wreck your whole savings. naked strategies are banned on many brokerages because of the enormous losses it can wreck on ignorant day traders. Short calls (or puts) are rarely used on their own, but they are an important piece of more advanced strategies that I won't detail here, and are often deployed very profitably by hedge funds.  
 
@@ -34,21 +38,22 @@ Instead of paying a premium up front we _receive_ a premium up front. But notice
 
 We can build more advanced strategies with unique properties by combining multiple options. An example is a "straddle", which you can make by buying a call and a put at the same $K$:
 
-![straddle](project-writeup/Straddle.jpg)
+![straddle](project-writeup/assets/Straddle.jpg)
+Sourced from [optionclue](https://optionclue.com/en/tradinglossary/long-straddle/)
 
 This strategy profits off of very large moves in the underlying asset, regardless of the direction. As an example, say NVIDIA earnings are coming up and you have no idea if they will be good or bad, but you suspect that either way, the stock is going to move a lot. No matter what happens, you'll stand to make a profit &ndash; unless the stock doesn't move at all, in which case _both_ options would be worthless, and you lose twice as much money! 
 
 The first part of the Option Profit Calculator, the "Strategy Payoff Diagram" aims to help traders make these types of strategies on their own by letting them view different options from the same stock, add them together, and create diagrams similar to above. That way, they can create custom strategies, view where they might profit, and note their total cost.
 
-## Motivation for the Future Profit Table
+## Motivation for the Future Payoff Table
 
-In our discussion about options, we haven't yet talked about how the option premium is determined and what it means. For example, how was the $15 premium of the call in the first example determined? On the trading floor, options are priced like any other commodity: the price fluctuates until the quantity that sellers are willing to sell equals the quantity that consumers want to buy. However, thanks to the work of some very bright applied mathematicians, we have some neat mathematical models that can approximate this market equilibrium price. 
-
-
-### European options (Black-Sholes)
+In our discussion about options, we haven't yet talked about how the option premium is determined and what it means. For example, how was the $15 premium (or value) of the call in the first example determined? On the trading floor, options are priced like any other commodity: the value fluctuates until the quantity that sellers are willing to sell equals the quantity that consumers want to buy. However, thanks to the work of some very bright applied mathematicians, we have some neat mathematical models that can approximate this market equilibrium value. 
 
 
-For a call ($C$) and put ($P$), the premiums can be given by:  
+### European options
+
+
+- __Black-Sholes Model__: For a call ($C$) and put ($P$), the premiums can be given by:  
 
 $$
 C = S_0 \Phi(d_1) - K e^{-rT} \Phi(d_2)
@@ -85,9 +90,13 @@ The formula seems quite intimidating, but there's a fairly simple interpretation
 European options yield nice closed-form formulas, but American options pose a challenge for mathematical modeling. With European options, you are not allowed to exercise (buy/sell the underlying asset at the agreed price, $K$), until _the day of the expiration date_. In American options, you _are_ allowed to, meaning that we have to check if at any point in time you could yield a better profit by buying/selling the underlying asset rather than just holding the option. There is no closed-form solution for this, but we do have approximations: 
 
 - __Binomial/Trinomial Option Pricing Model__: We won't go into the details of this method here, but this essentially amounts to a monte carlo simulation, checking if at any point in time it is optimal to exercise early rather than just hold the option to expiration. This is then added to the premium, and the premium increases. 
-- __Bjerksund-Stensland Model__: A closed-form approximation of the Binomial/Trinomial Model detailed in 1993. It is slightly less accurate, but it is much faster to compute and takes in the same parameters as the Black-Sholes model ($C, S_0, K, r, T, \sigma$)
+- __Bjerksund-Stensland Model__: A closed-form approximation of the Binomial/Trinomial Model detailed in 1993 and [revised in 2002](https://derivativesacademy.com/storage/uploads/files/modules/resources/1703192811_bjerksund_stensland_2002_closed_form_valuation_of_american_options.pdf). It is slightly less accurate, but it is much faster to compute and takes in the same parameters as the Black-Sholes model ($C, S_0, K, r, T, \sigma$).
 
-With the American models, we can actually price what the option's value might be in the market between now and the option's expiration, and under different market conditions. 
+With the American models, we can actually price what the option's value might be in the market between now and the option's expiration, and under different market conditions. This is what the Option Profit Calculator does with the "Future Payoff Diagram", using the [optlib](https://github.com/dbrojas/optlib/tree/master) library. Here's an example: 
+
+![future_payoff](project-writeup/assets/example_future_payoff.png)
+
+Displayed here are the different values of an Apple call option, $K$=$257.5 expiring on 12/20/2024 at a range of different prices (currently ~$253 as of 12/17/2024). The user is able to toggle between value and profit, where profit will just be the value minus the total cost of the options. The heatmap works for multiple options grouped together, calculating possible value over time for custom strategies. Of course, this assumes that all six parameters stay constant over this time period, which is an enormous assumption. The sensitivity of the option's value to stock price, volatility, time, and other parameters can be calculated using derivatives, which yield the __Option Greeks__. Interpreting them is beyond the scope of this introduction, but a good overview can be found [here](https://www.youtube.com/watch?v=kCJcEOYuuII&ab_channel=OptionAlpha).
 
 
 
