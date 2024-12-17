@@ -49,9 +49,11 @@ In our discussion about options, we haven't yet talked about how the option prem
 
 
 For a call ($C$) and put ($P$), the premiums can be given by:  
+
 $$
 C = S_0 \Phi(d_1) - K e^{-rT} \Phi(d_2)
 $$
+
 $$
 P = K e^{-rT} \Phi(-d_2) - S_0 \Phi(-d_1)
 $$
