@@ -9,30 +9,25 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QHBoxLayout,
     QMessageBox,
+    QGridLayout,
     QLineEdit,
     QLabel
 )
-from PyQt5.QtGui import QStandardItemModel, QStandardItem
 from PyQt5.QtCore import QModelIndex
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFont
 
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
-import pandas as pd
+
 from src.custom_components import configure_button
 from utils.data_utils import SchwabData, DummyData
 from vis.payoff import OptionPayoffPlot
 from vis.heatmap import Heatmap
-from PyQt5.QtWebEngineWidgets import QWebEngineView
-from PyQt5.QtCore import QUrl
 
-import os
+import pandas as pd
 import traceback
-
-from datetime import datetime
-
-import json
-
 from src.custom_components import PandasModel
+
+from typing import Optional
 
 class OptionChainWindow(qtw.QWidget):
     '''
@@ -102,6 +97,7 @@ class OptionChainWindow(qtw.QWidget):
 
     def configure_left_layout(self, layout: QVBoxLayout):
         left_layout = qtw.QVBoxLayout()
+        left_layout.setContentsMargins(20, 50, 20, 20)
 
         # Add a toggle button to view either calls or puts
         self.toggle_button = QPushButton()
@@ -111,7 +107,6 @@ class OptionChainWindow(qtw.QWidget):
                          command=self.toggle_calls_puts
                          )
         
-        left_layout.addWidget(self.toggle_button)
 
         # Add a ticker input field
         ticker_layout = QHBoxLayout()
@@ -127,20 +122,28 @@ class OptionChainWindow(qtw.QWidget):
         ticker_layout.addWidget(ticker_label)
         ticker_layout.addWidget(self.ticker_input)
 
+        stock_info = QGridLayout()
+        stock_info.setVerticalSpacing(2)
+
+        option_info = QGridLayout()
+        option_info.setVerticalSpacing(2)
+
+        self.stock_labels = {}
+        self.option_labels = {}
+        self.initialize_labels(stock_info, option_info)
         # Add to the left layout
         left_layout.addLayout(ticker_layout)
         left_layout.addWidget(self.enter_ticker)
+        left_layout.addLayout(stock_info)
+        left_layout.addLayout(option_info)
+        left_layout.addWidget(self.toggle_button)
+        
 
         layout.addLayout(left_layout, stretch = 0)
 
     def configure_figure(self, layout: QVBoxLayout):
 
         right_layout = qtw.QVBoxLayout()
-
-        # self.canvas = QWebEngineView()
-        # self.canvas.setHtml(self.display.html)
-        # self.update_plot()
-        #self.canvas.loadFinished.connect(self.on_load_finished)
 
         right_layout.addWidget(self.display)
         self.option_description = QLabel("No option selected.")
@@ -197,6 +200,108 @@ class OptionChainWindow(qtw.QWidget):
 
         # Add the tab to the QTabWidget
         self.tabs.addTab(tab, "No Data")
+
+    def initialize_labels(self, stocklayout: QGridLayout, optionlayout: QGridLayout):
+        '''
+        Initializes QLabel widgets for displaying descriptive statistics and adds them to the top layout.
+        
+        ### Returns:
+        - None
+        '''
+        # Define the labels you want to display
+        title_names = ["Stock Ticker","Current Price"]
+
+        for i, name in enumerate(title_names):
+            # Create value label
+            value = QLabel("N/A")
+            value.setStyleSheet("font-size: 30px; color: white; padding: 1px;")
+            value.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+            
+            # Add to the grid layout
+            stocklayout.addWidget(value, i // 2, (i % 2) * 2)
+
+            self.stock_labels[name] = value
+
+        label_names = [
+            "Delta",
+            "Gamma",
+            "Theta",
+            "Vega",
+            "Rho",
+            "Implied Volatility"]
+        
+        # Set font for labels
+        title_font = QFont("Arial", 12, QFont.Bold)
+        value_font = QFont("Arial", 12)
+        
+        for i, name in enumerate(label_names):
+            # Create title label
+            title = QLabel(f"{name}:")
+            title.setMinimumWidth(100)
+            title.setFont(title_font)
+            title.setStyleSheet('''font-family: Arial;
+                                font-size: 18px; 
+                                color: white; 
+                                padding: 1px;''')
+            title.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            
+            # Create value label
+            value = QLabel("N/A")
+            title.setMinimumWidth(100)
+            value.setFont(value_font)
+            value.setStyleSheet("color: white;")
+            value.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+             
+            # Add to the grid layout
+            optionlayout.addWidget(title, i // 2, (i % 2) * 2)
+            optionlayout.addWidget(value, i // 2, (i % 2) * 2 + 1)
+            
+            # Store the label in the dictionary for easy access
+            self.option_labels[name] = value
+
+    def update_stock_labels(self, stock_data: dict):
+        '''
+        Updates the labels with the given data.
+        
+        ### Parameters:
+        - stock_data: dict: Dictionary containing stock data.
+        - option_data: dict: Dictionary containing option data.
+        
+        ### Returns:
+        - None
+        '''
+        # Update stock labels
+        for name, value in stock_data.items():
+            self.stock_labels[name].setText(str(value))
+
+        return
+
+    def update_option_labels(self, option_data: dict, option_type: Optional[str] = None):
+        '''
+        Updates the labels with new options data.
+        
+        ### Parameters:
+        - stock_data: dict: Dictionary containing stock data.
+        - option_data: dict: Dictionary containing option data.
+        - option_type: str: 'long' or 'short'
+        
+        ### Returns:
+        - None
+        '''
+        # Update stock labels
+        for name, value in option_data.items():
+            if self.option_labels[name].text() == 'N/A' or value == 'N/A':
+                self.option_labels[name].setText(str(value))
+            else:
+                if option_type == 'long':
+                    curr_val = float(self.option_labels[name].text())
+                    self.option_labels[name].setText(f"{curr_val+value:.2f}")
+                else:
+                    curr_val = float(self.option_labels[name].text())
+                    self.option_labels[name].setText(f"{curr_val-value:.2f}")
+            
+        return
+        
     
     def update_plot(self):
         
@@ -327,8 +432,6 @@ class OptionChainWindow(qtw.QWidget):
         else:
             self.toggle_button.setText("View Calls")
         
-        print("Show calls is",self.show_calls)
-        
         for tab_info in self.table_views:
             table_view = tab_info['table_view']
             calls_df = tab_info['calls_df']
@@ -372,7 +475,6 @@ class OptionChainWindow(qtw.QWidget):
             print(traceback.format_exc())
             return 
 
-        print(data)
         self.calls_data = data['calls'] # data initialized
         self.puts_data = data['puts']
         self.interest_rate = r_f/100
@@ -390,6 +492,12 @@ class OptionChainWindow(qtw.QWidget):
         self.ticker_input.clear()
 
         self.display.add_vline(self.engine.get_price(self.ticker), name="Current Price")
+        
+        stock_data = {
+            "Stock Ticker": self.ticker,
+            "Current Price": self.engine.get_price(self.ticker)
+        }
+        self.update_stock_labels(stock_data)
 
         return
 
@@ -407,6 +515,16 @@ class OptionChainWindow(qtw.QWidget):
         self.div_yields.append(self.engine.get_div_yield(self.ticker))
         self.positions.append("long")
         self.total_cost += self.current_option['Ask']*100
+
+        options_data = {
+            "Delta": self.current_option['Delta'],
+            "Gamma": self.current_option['Gamma'],
+            "Theta": self.current_option['Theta'],
+            "Vega": self.current_option['Vega'],
+            "Rho": self.current_option['Rho'],
+            "Implied Volatility": self.current_option['Volatility']
+        }
+        self.update_option_labels(options_data,'long')
 
         self.update_plot()
         return
@@ -426,6 +544,16 @@ class OptionChainWindow(qtw.QWidget):
         self.positions.append("short")
         self.total_cost -= self.current_option['Ask']*100
 
+        options_data = {
+            "Delta": self.current_option['Delta'],
+            "Gamma": self.current_option['Gamma'],
+            "Theta": self.current_option['Theta'],
+            "Vega": self.current_option['Vega'],
+            "Rho": self.current_option['Rho'],
+            "Implied Volatility": self.current_option['Volatility']
+        }
+        self.update_option_labels(options_data,'short')
+
         self.update_plot() # assigns new html to webengineview
         return
     
@@ -436,6 +564,15 @@ class OptionChainWindow(qtw.QWidget):
         self.display.reset_data()
         self.option_description.setText("No option selected.")
         
+        option_data = {
+            "Delta": "N/A",
+            "Gamma": "N/A",
+            "Theta": "N/A",
+            "Vega": "N/A",
+            "Rho": "N/A",
+            "Implied Volatility": "N/A"
+        }
+        self.update_option_labels(option_data)
         self.update_plot()
 
     def show_heatmap(self):
@@ -451,10 +588,10 @@ class OptionChainWindow(qtw.QWidget):
             )
             return
 
-        self.heatmap = Heatmap(self.options, 
+        self.heatmap = Heatmap(self.options,
                         self.expirations,
                         self.interest_rate,
-                        self.div_yields, 
+                        self.div_yields,
                         self.positions,
                         self.engine.get_price(self.ticker),
                         self.total_cost

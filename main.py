@@ -7,8 +7,8 @@ def main(demo: bool = False):
     app = qtw.QApplication([])
     app.setStyleSheet('''
                     QWidget { 
-                    font-family: Roboto;
-                    font-size: 14px;
+                    font-family: Arial;
+                    font-size: 16px;
                     color: white;
                     /* background: #1A273C; */
                     background: #17212e;

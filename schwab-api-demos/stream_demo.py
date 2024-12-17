@@ -5,12 +5,22 @@ import time
 import json
 import pandas as pd
 
+from pytz import timezone
+from datetime import datetime
+
 from dotenv import load_dotenv
 load_dotenv()
 
 app_key = os.getenv('APP_KEY')
 secret = os.getenv('SECRET_KEY')
 
+def is_market_open():
+    eastern = timezone('US/Eastern')
+    now = datetime.now(eastern)
+    market_open = now.replace(hour=9, minute=0, second=0, microsecond=0)
+    market_close = now.replace(hour=16, minute=0, second=0, microsecond=0)
+
+    return market_open <= now <= market_close
 
 def main():
     # place your app key and app secret in the .env file
@@ -96,7 +106,64 @@ def main():
     # if you don't want to clear the subscriptions, set clear_subscriptions=False
     # streamer.stop(clear_subscriptions=False)
 
+def get_stream_data(ticker:str) -> dict:
+    '''
+    Get streaming data for chosen stock. Returns a dictionary with the streaming data.
+    ### Parameters:
+    - ticker: str: Ticker symbol of the security (e.g. AAPL, MSFT, TSLA).
+    '''
+    def response_handler(response):
+        if is_market_open():
+            print(response.keys())
+        else:
+            print(240)
+        
+    client = schwabdev.Client(app_key, secret, 'https://127.0.0.1')
+    
+    streamer = client.stream
+    streamer.start(response_handler)
+
+    streamer.send(streamer.level_one_equities(ticker, "0,2", command="UNSUBS"))
+    
+    time.sleep(10)
+    
+    streamer.stop()
+    return
+
 
 if __name__ == '__main__':
     print("Welcome to the unofficial Schwab interface!\nGithub: https://github.com/tylerebowers/Schwab-API-Python")
-    main()  # call the user code above
+    get_stream_data("AAPL")  # call the user code above
+
+        
+    # class SchwabStream: 
+    #     '''
+    #     Class to interact with the Schwab API for streaming data. Based off of the schwabdev package. Takes no parameters. 
+
+    #     ### Attributes:
+    #     - app_key: app key for the Schwab API. Kept in the .env file.
+    #     - secret: secret key for the Schwab API. Kept in the .env file.
+    #     - client: Schwab API client object.
+
+    #     ### Methods:
+    #     - get_stream_data(ticker:str) -> dict: Get streaming data for chosen stock. Returns a dictionary with the streaming data.
+    #     '''
+    #     def __init__(self):
+    #         load_dotenv()
+
+    #         self.app_key = os.getenv('APP_KEY')
+    #         self.secret = os.getenv('SECRET_KEY')
+
+    #         self.client = schwabdev.Client(app_key=self.app_key, app_secret=self.secret)
+
+    #         return
+        
+    #     def get_stream_data(self, ticker:str) -> dict:
+    #         '''
+    #         Get streaming data for chosen stock. Returns a dictionary with the streaming data.
+    #         ### Parameters:
+    #         - ticker: str: Ticker symbol of the security (e.g. AAPL, MSFT, TSLA).
+    #         '''
+    #         stream_data = self.client.stream_data(ticker).json()
+
+    #         return stream_data

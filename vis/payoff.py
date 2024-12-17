@@ -4,14 +4,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime, timedelta
 from typing import Optional
-import random
-
-import plotly.graph_objs as go
-import plotly.io as pio
-import plotly.offline as offline
-
-import os
-import tempfile
 
 import pyqtgraph as pg
 from PyQt5 import QtWidgets as qtw
@@ -79,8 +71,25 @@ def plot_payoff(stock_series, payoff_series):
 class OptionPayoffPlot(qtw.QWidget):
     '''
     Class to plot payoff of options strategies.
+    Designed to be used with PyQt5 and set to a main layout on a larger window. 
+    Takes no parameters. 
 
-    Contains, fig, ax, and scat objects.
+    ### Methods:
+    - add_vline: Add a vertical line to the plot
+    - remove_vlines: Remove all vertical lines from the plot
+    - add_option: Add an option to the plot
+    - reset_data: Reset the plot to empty
+    - update_traces: Update the plot with the current data. Designed to be called after add_option.
+
+    ### Attributes:
+    - xdata: array of x-axis (stock price) data
+    - ydata: array of y-axis (option value) data
+    - plot_widget: PyQtGraph PlotWidget object
+    - positive_curve: PyQtGraph curve for positive profits
+    - negative_curve: PyQtGraph curve for negative profits
+    - lines: list of vertical lines on the plot
+
+
     '''
 
     def __init__(self):
@@ -116,7 +125,9 @@ class OptionPayoffPlot(qtw.QWidget):
 
     def __customize_plot(self, plot_widget: pg.PlotWidget) -> None:
         """
+        Returns None. 
         Customizes the appearance of the PlotWidget.
+        - plot_widget: the PlotWidget object to customize
         """
         # Set the background color
         plot_widget.setBackground('k')
@@ -140,9 +151,11 @@ class OptionPayoffPlot(qtw.QWidget):
     
     def __set_plot_range(self, view_box: pg.ViewBox, stock_price=None) -> tuple[float, float, float, float]:
         """
-        Sets the minimum and maximum limits for zooming on both X and Y axes.
+        Sets the minimum and maximum limits for zooming on both X and Y axes and returns the limits for X and Y axes.
+        If stock_price is not provided, default limits of 0 < x < 1000 and -50000 < y < 50000 are used. 
         Modifies the ViewBox object to enforce these limits.
-        Returns the limits for X and Y axes.
+        - view_box: the ViewBox object to modify
+        - stock_price: the current stock price (default None)
         """
         # Adjusting min and maxes based on s0
         view_box.setAspectLocked(True, ratio = 100)
@@ -177,7 +190,7 @@ class OptionPayoffPlot(qtw.QWidget):
 
     def __on_range_changed(self):
         """
-        Slot to handle range changes and enforce zoom limits.
+        Slot to handle range changes and enforce zoom limits. Returns None.
         """
         # Get the current range
         view_range = self.view_box.viewRange()
@@ -212,6 +225,11 @@ class OptionPayoffPlot(qtw.QWidget):
             self.view_box.blockSignals(False)
 
     def add_vline(self, x:float, name:str) -> None:
+        '''
+        Adds vertical lines to plot at x. Gives a name to the line.
+        - x: x-coordinate of the vertical line
+        - name: name of the vertical line to appear in the legend
+        '''
         line = self.plot_widget.plot([x, x], [self.y_min, self.y_max], 
                                      pen=pg.mkPen(color='w', width=2), 
                                      name=name)
@@ -226,17 +244,6 @@ class OptionPayoffPlot(qtw.QWidget):
         self.lines.clear()
         
         return
-
-    def generate_html(self):
-        """
-        Generates the HTML string for the current Plotly figure.
-        """
-        # html = '<html><body>'
-        # html += offline.plot(self.fig, output_type='div', include_plotlyjs='cdn')# config=config)
-        # html += '</body></html>'
-
-        # return html
-        pass
 
     def add_option(self, option: dict, opt_type:str, buy: bool, s0: float) -> None:
         '''

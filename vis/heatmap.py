@@ -257,18 +257,16 @@ class Heatmap(qtw.QWidget):
 
         for option, div_yield, position in zip(self.options, self.div_yields, self.positions):
             opt_type = option['Description'][-1].lower()
-            print(opt_type)
+
             k = option['Strike']
             iv = option['Volatility']/100 if option['Volatility'] < 200 else 2
 
-            print('dates:',self.date_range)
             for i, date in enumerate(self.date_range):
                 if i == 0:
                     dt = datetime.today()
                 else:
                     dt = datetime.strptime(date, '%Y-%m-%d').replace(hour=16, minute=0, second=0) # set time to 4pm for market close
                 dte = (exp - dt).total_seconds()/(365*86400)
-                print("today",datetime.today(), "dte:",dte*365)
                 for j, price in enumerate(self.prices):
                     if dte > 0.001:
                         val = american(opt_type,
