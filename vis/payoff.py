@@ -312,8 +312,6 @@ class OptionPayoffPlot(qtw.QWidget):
         self.positive_curve.setData([], [])
         self.negative_curve.setData([], [])
 
-        self.remove_vlines()
-
         self.__set_plot_range(self.view_box)
 
         return

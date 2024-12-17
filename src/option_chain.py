@@ -452,27 +452,31 @@ class OptionChainWindow(qtw.QWidget):
     def get_ticker_data(self):
 
         if self.ticker and self.ticker_input.text().upper() != self.ticker: # if we have a different ticker than already exists
-            QMessageBox.warning(
+            reply = QMessageBox.warning(
                 self,
+                "Warning",
                 "If you change the ticker, you're strategy plot will be reset! Proceed?",   
-                QMessageBox.Ok | QMessageBox.Cancel
+                QMessageBox.Ok | QMessageBox.Cancel,
+                QMessageBox.Cancel
             )
-            if QMessageBox.Cancel:
+            if reply == QMessageBox.Cancel:
                 return
             else:
+                self.display.remove_vlines()
                 self.reset_plot()
+
+        # Get the ticker from the input field
         self.ticker = self.ticker_input.text().upper()
         
         try:
             data, r_f = self.engine.get_options_chain_dict(self.ticker)
         except ValueError as e:
-            # QMessageBox.warning(
-            #     self,
-            #     "Invalid Ticker",
-            #     str(e),
-            #     QMessageBox.Ok
-            # )
-            print(traceback.format_exc())
+            QMessageBox.warning(
+                self,
+                "Invalid Ticker",
+                str(e),
+                QMessageBox.Ok
+            )
             return 
 
         self.calls_data = data['calls'] # data initialized
@@ -573,16 +577,23 @@ class OptionChainWindow(qtw.QWidget):
             "Implied Volatility": "N/A"
         }
         self.update_option_labels(option_data)
+
+        self.options.clear()
+        self.expirations.clear()
+        self.div_yields.clear()
+        self.positions.clear()
+        self.total_cost = 0
+        
         self.update_plot()
 
     def show_heatmap(self):
         '''
         Shows the future payoff heatmap.
         '''
-        if not hasattr(self, 'interest_rate'):
+        if not hasattr(self, 'interest_rate') or not self.options:
             QMessageBox.warning(
                 self,
-                "No Data",
+                "No Options Data",
                 "Please load data before showing the heatmap.",
                 QMessageBox.Ok
             )
