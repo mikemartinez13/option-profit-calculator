@@ -43,7 +43,6 @@ class MainWindow(qtw.QMainWindow):
 
         # Initialize Strategy Builder window
         self.strategy_builder_window = OptionChainWindow(demo=self.demo)
-        
         # self.portfolio_viewer_window = PortfolioViewerWindow()
         # Initialize more feature windows as needed
         

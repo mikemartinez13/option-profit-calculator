@@ -9,22 +9,25 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QHBoxLayout,
     QMessageBox,
+    QGridLayout,
     QLineEdit,
     QLabel
 )
-from PyQt5.QtGui import QStandardItemModel, QStandardItem
 from PyQt5.QtCore import QModelIndex
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFont
 
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
-import pandas as pd
+
 from src.custom_components import configure_button
 from utils.data_utils import SchwabData, DummyData
-from vis.plots import OptionPayoffPlot
+from vis.payoff import OptionPayoffPlot
+from vis.heatmap import Heatmap
 
-import json
-
+import pandas as pd
+import traceback
 from src.custom_components import PandasModel
+
+from typing import Optional
 
 class OptionChainWindow(qtw.QWidget):
     '''
@@ -34,7 +37,7 @@ class OptionChainWindow(qtw.QWidget):
     def __init__(self, demo = False, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Options Chains by Expiration Date")
-        self.setGeometry(200, 200, 1400, 600)
+        self.setGeometry(200, 200, 1600, 600)
 
         if demo:
             self.engine = DummyData()
@@ -43,7 +46,12 @@ class OptionChainWindow(qtw.QWidget):
             
         self.display = OptionPayoffPlot()
 
+        self.heatmap = None
+
         self.ticker = None
+
+        # display values
+        self.total_cost = 0
 
         # Toggle state
         self.show_calls = True
@@ -56,21 +64,40 @@ class OptionChainWindow(qtw.QWidget):
         self.configure_left_layout(main_layout)
 
         self.tabs = QTabWidget()
-        main_layout.addWidget(self.tabs, stretch = 2)
+        self.tabs.setStyleSheet("""
+            QTabBar::tab {
+                background: #2E3440;      
+                color: #D8DEE9;          
+                padding: 10px;
+                border: 1px solid #4C566A; 
+                border-bottom: none;      
+                border-radius: 5px 5px 0 0; 
+            }
+
+            QTabBar::tab:selected {
+                background: #81A1C1;      
+                color: #ECEFF4;           
+            }
+        """)
+        main_layout.addWidget(self.tabs, stretch = 3)
 
         self.configure_figure(main_layout)
 
         self.show_no_data_message()
 
-        #print("Show calls is",self.show_calls)
 
-        # expiration_dates = self.calls_data.keys()
+        # initialize data
 
-        # for expdate in expiration_dates:
-        #     self.add_tab(expdate, self.calls_data[expdate], self.puts_data[expdate])
+        self.options = []
+        self.expirations = []
+        self.div_yields = []
+        self.positions = []
+
+        return
 
     def configure_left_layout(self, layout: QVBoxLayout):
         left_layout = qtw.QVBoxLayout()
+        left_layout.setContentsMargins(20, 50, 20, 20)
 
         # Add a toggle button to view either calls or puts
         self.toggle_button = QPushButton()
@@ -80,14 +107,13 @@ class OptionChainWindow(qtw.QWidget):
                          command=self.toggle_calls_puts
                          )
         
-        left_layout.addWidget(self.toggle_button)
 
         # Add a ticker input field
         ticker_layout = QHBoxLayout()
         ticker_label = qtw.QLabel("Ticker:")
         self.ticker_input = QLineEdit()
         self.enter_ticker = QPushButton()
-
+        
         configure_button(self.enter_ticker, 
                          text="Enter",
                          command=self.get_ticker_data
@@ -96,22 +122,36 @@ class OptionChainWindow(qtw.QWidget):
         ticker_layout.addWidget(ticker_label)
         ticker_layout.addWidget(self.ticker_input)
 
+        stock_info = QGridLayout()
+        stock_info.setVerticalSpacing(2)
+
+        option_info = QGridLayout()
+        option_info.setVerticalSpacing(2)
+
+        self.stock_labels = {}
+        self.option_labels = {}
+        self.initialize_labels(stock_info, option_info)
         # Add to the left layout
         left_layout.addLayout(ticker_layout)
         left_layout.addWidget(self.enter_ticker)
+        left_layout.addLayout(stock_info)
+        left_layout.addLayout(option_info)
+        left_layout.addWidget(self.toggle_button)
+        
 
         layout.addLayout(left_layout, stretch = 0)
 
     def configure_figure(self, layout: QVBoxLayout):
-        #q: How do I add a figure to the right layout?
-        right_layout = qtw.QVBoxLayout()
-        self.canvas = FigureCanvasQTAgg(self.display.fig)
 
+        right_layout = qtw.QVBoxLayout()
+
+        right_layout.addWidget(self.display)
         self.option_description = QLabel("No option selected.")
 
         self.long_button = QPushButton()
         self.short_button = QPushButton()
         self.reset_button = QPushButton()
+        self.heatmap = QPushButton()
 
         configure_button(self.long_button,
                             text="Add Long to Plot (Buy)",
@@ -125,14 +165,23 @@ class OptionChainWindow(qtw.QWidget):
                             text="Reset Plot",
                             command=self.reset_plot
                         )
+        configure_button(self.heatmap, 
+                            text="Show Future Payoff",
+                            command=self.show_heatmap
+                        )
         
-        right_layout.addWidget(self.canvas)
         right_layout.addWidget(self.option_description)
         right_layout.addWidget(self.long_button)
         right_layout.addWidget(self.short_button)
         right_layout.addWidget(self.reset_button)
+        right_layout.addWidget(self.heatmap)
+
+        self.long_button.setEnabled(False)
+        self.short_button.setEnabled(False)
+        self.reset_button.setEnabled(False)
+        self.heatmap.setEnabled(False)
         
-        layout.addLayout(right_layout, stretch = 1)
+        layout.addLayout(right_layout, stretch = 2)
 
     def show_no_data_message(self):
         '''
@@ -152,6 +201,115 @@ class OptionChainWindow(qtw.QWidget):
         # Add the tab to the QTabWidget
         self.tabs.addTab(tab, "No Data")
 
+    def initialize_labels(self, stocklayout: QGridLayout, optionlayout: QGridLayout):
+        '''
+        Initializes QLabel widgets for displaying descriptive statistics and adds them to the top layout.
+        
+        ### Returns:
+        - None
+        '''
+        # Define the labels you want to display
+        title_names = ["Stock Ticker","Current Price"]
+
+        for i, name in enumerate(title_names):
+            # Create value label
+            value = QLabel("N/A")
+            value.setStyleSheet("font-size: 30px; color: white; padding: 1px;")
+            value.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+            
+            # Add to the grid layout
+            stocklayout.addWidget(value, i // 2, (i % 2) * 2)
+
+            self.stock_labels[name] = value
+
+        label_names = [
+            "Delta",
+            "Gamma",
+            "Theta",
+            "Vega",
+            "Rho",
+            "Implied Volatility"]
+        
+        # Set font for labels
+        title_font = QFont("Arial", 12, QFont.Bold)
+        value_font = QFont("Arial", 12)
+        
+        for i, name in enumerate(label_names):
+            # Create title label
+            title = QLabel(f"{name}:")
+            title.setMinimumWidth(100)
+            title.setFont(title_font)
+            title.setStyleSheet('''font-family: Arial;
+                                font-size: 18px; 
+                                color: white; 
+                                padding: 1px;''')
+            title.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            
+            # Create value label
+            value = QLabel("N/A")
+            title.setMinimumWidth(100)
+            value.setFont(value_font)
+            value.setStyleSheet("color: white;")
+            value.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+             
+            # Add to the grid layout
+            optionlayout.addWidget(title, i // 2, (i % 2) * 2)
+            optionlayout.addWidget(value, i // 2, (i % 2) * 2 + 1)
+            
+            # Store the label in the dictionary for easy access
+            self.option_labels[name] = value
+
+    def update_stock_labels(self, stock_data: dict):
+        '''
+        Updates the labels with the given data.
+        
+        ### Parameters:
+        - stock_data: dict: Dictionary containing stock data.
+        - option_data: dict: Dictionary containing option data.
+        
+        ### Returns:
+        - None
+        '''
+        # Update stock labels
+        for name, value in stock_data.items():
+            self.stock_labels[name].setText(str(value))
+
+        return
+
+    def update_option_labels(self, option_data: dict, option_type: Optional[str] = None):
+        '''
+        Updates the labels with new options data.
+        
+        ### Parameters:
+        - stock_data: dict: Dictionary containing stock data.
+        - option_data: dict: Dictionary containing option data.
+        - option_type: str: 'long' or 'short'
+        
+        ### Returns:
+        - None
+        '''
+        # Update stock labels
+        for name, value in option_data.items():
+            if self.option_labels[name].text() == 'N/A' or value == 'N/A':
+                self.option_labels[name].setText(str(value))
+            else:
+                if option_type == 'long':
+                    curr_val = float(self.option_labels[name].text())
+                    self.option_labels[name].setText(f"{curr_val+value:.2f}")
+                else:
+                    curr_val = float(self.option_labels[name].text())
+                    self.option_labels[name].setText(f"{curr_val-value:.2f}")
+            
+        return
+        
+    
+    def update_plot(self):
+        
+        # self.canvas.setHtml(self.display.html)
+        # return 
+        pass
+
+
     def add_tab(self, expiration_date: str, calls_df: pd.DataFrame, puts_df: pd.DataFrame):
         '''
         Adds a new tab for a given expiration date with its options chain table.
@@ -168,9 +326,30 @@ class OptionChainWindow(qtw.QWidget):
 
         # Create the table view
         table_view = QTableView()
+        # table_view.setStyleSheet("background: #000000; color: white;")
+        table_view.setStyleSheet("""
+            QTableView {
+                background-color: #000000; 
+                color: white;              
+                gridline-color: #444444;   
+                selection-background-color: #555555; 
+            }
+
+            QHeaderView::section {
+                background-color: #333333; 
+                color: white;              
+                padding: 4px;              
+                border: 1px solid #555555; 
+                font-weight: bold;         
+            }
+
+            QHeaderView::section {
+                border: none;
+            }
+        """)
         table_view.setEditTriggers(qtw.QAbstractItemView.NoEditTriggers)  # Make table read-only
         table_view.setSelectionBehavior(qtw.QAbstractItemView.SelectRows)
-        table_view.setAlternatingRowColors(True)
+        #table_view.setAlternatingRowColors(True)
         table_view.setSortingEnabled(True)  # Enable sorting
 
         # Create and set the model
@@ -209,14 +388,6 @@ class OptionChainWindow(qtw.QWidget):
         # Get the current widget (tab)
         current_tab = self.tabs.currentIndex()
         expiration_date = self.tabs.tabBar().tabData(current_tab)
-        # if not isinstance(current_tab, OptionTab):
-        #     QMessageBox.warning(
-        #         self,
-        #         "Unknown Tab",
-        #         "Active tab does not contain option data.",
-        #         QMessageBox.Ok
-        #     )
-        #     return
 
         if self.show_calls:
             df = self.calls_data[expiration_date]
@@ -235,10 +406,20 @@ class OptionChainWindow(qtw.QWidget):
         row = index.row()
 
         self.current_option = df.iloc[row].to_dict() # make attribute so other functions can access
+
+        # Enable buttons 
+        self.long_button.setEnabled(True)
+        self.short_button.setEnabled(True)
+        self.reset_button.setEnabled(True)
+        self.heatmap.setEnabled(True)
+
+        # Update option description
         self.type = "call" if self.show_calls else "put"
 
         self.option_description.setText("{1} {0} at $K={2}$, bid of {3}, ask of {4}, expiring {5}."\
                                         .format(self.type, self.ticker, self.current_option['Strike'], self.current_option['Bid'], self.current_option['Ask'], expiration_date))
+
+        return
 
     def toggle_calls_puts(self):
         '''
@@ -250,8 +431,6 @@ class OptionChainWindow(qtw.QWidget):
             self.toggle_button.setText("View Puts")
         else:
             self.toggle_button.setText("View Calls")
-        
-        print("Show calls is",self.show_calls)
         
         for tab_info in self.table_views:
             table_view = tab_info['table_view']
@@ -267,12 +446,30 @@ class OptionChainWindow(qtw.QWidget):
 
             # Update the current model reference
             tab_info['current_model'] = new_model
+        
+        return
 
     def get_ticker_data(self):
+
+        if self.ticker and self.ticker_input.text().upper() != self.ticker: # if we have a different ticker than already exists
+            reply = QMessageBox.warning(
+                self,
+                "Warning",
+                "If you change the ticker, you're strategy plot will be reset! Proceed?",   
+                QMessageBox.Ok | QMessageBox.Cancel,
+                QMessageBox.Cancel
+            )
+            if reply == QMessageBox.Cancel:
+                return
+            else:
+                self.display.remove_vlines()
+                self.reset_plot()
+
+        # Get the ticker from the input field
         self.ticker = self.ticker_input.text().upper()
         
         try:
-            data = self.engine.get_options_chain_dict(self.ticker)
+            data, r_f = self.engine.get_options_chain_dict(self.ticker)
         except ValueError as e:
             QMessageBox.warning(
                 self,
@@ -280,10 +477,11 @@ class OptionChainWindow(qtw.QWidget):
                 str(e),
                 QMessageBox.Ok
             )
-            return
+            return 
 
         self.calls_data = data['calls'] # data initialized
         self.puts_data = data['puts']
+        self.interest_rate = r_f/100
 
         # Clear existing tabs
         self.tabs.clear()
@@ -297,6 +495,16 @@ class OptionChainWindow(qtw.QWidget):
 
         self.ticker_input.clear()
 
+        self.display.add_vline(self.engine.get_price(self.ticker), name="Current Price")
+        
+        stock_data = {
+            "Stock Ticker": self.ticker,
+            "Current Price": self.engine.get_price(self.ticker)
+        }
+        self.update_stock_labels(stock_data)
+
+        return
+
     def add_long(self):
         '''
         Adds a long option to the plot.
@@ -306,6 +514,24 @@ class OptionChainWindow(qtw.QWidget):
                                 buy=True, 
                                 s0=self.engine.get_price(ticker=self.ticker)
                                 )
+        self.options.append(self.current_option)
+        self.expirations.append(self.current_option['Days to Expiration'])
+        self.div_yields.append(self.engine.get_div_yield(self.ticker))
+        self.positions.append("long")
+        self.total_cost += self.current_option['Ask']*100
+
+        options_data = {
+            "Delta": self.current_option['Delta'],
+            "Gamma": self.current_option['Gamma'],
+            "Theta": self.current_option['Theta'],
+            "Vega": self.current_option['Vega'],
+            "Rho": self.current_option['Rho'],
+            "Implied Volatility": self.current_option['Volatility']
+        }
+        self.update_option_labels(options_data,'long')
+
+        self.update_plot()
+        return
 
     def add_short(self):
         '''
@@ -315,51 +541,72 @@ class OptionChainWindow(qtw.QWidget):
                                 opt_type=self.type, 
                                 buy=False, 
                                 s0=self.engine.get_price(ticker=self.ticker)
-                                )
+                                ) # updates traces and generates new html
+        self.options.append(self.current_option)
+        self.expirations.append(self.current_option['Days to Expiration'])
+        self.div_yields.append(self.engine.get_div_yield(self.ticker))
+        self.positions.append("short")
+        self.total_cost -= self.current_option['Ask']*100
+
+        options_data = {
+            "Delta": self.current_option['Delta'],
+            "Gamma": self.current_option['Gamma'],
+            "Theta": self.current_option['Theta'],
+            "Vega": self.current_option['Vega'],
+            "Rho": self.current_option['Rho'],
+            "Implied Volatility": self.current_option['Volatility']
+        }
+        self.update_option_labels(options_data,'short')
+
+        self.update_plot() # assigns new html to webengineview
+        return
     
     def reset_plot(self):
         '''
-        Resets the plot to its initial state.
+        Resets the plot.
         '''
         self.display.reset_data()
         self.option_description.setText("No option selected.")
-
-    # def configure_demo(self, layout: QVBoxLayout):
-    #     left_layout = qtw.QVBoxLayout()
-
-    #     # Add a toggle button to view either calls or puts
-    #     self.toggle_button = QPushButton()
-
-    #     configure_button(self.toggle_button, 
-    #                      text="Toggle Calls/Puts",
-    #                      command=self.toggle_calls_puts
-    #                      )
         
-    #     left_layout.addWidget(self.toggle_button)
+        option_data = {
+            "Delta": "N/A",
+            "Gamma": "N/A",
+            "Theta": "N/A",
+            "Vega": "N/A",
+            "Rho": "N/A",
+            "Implied Volatility": "N/A"
+        }
+        self.update_option_labels(option_data)
 
-    #     # # Add a ticker input field
-    #     # ticker_layout = QHBoxLayout()
-    #     # ticker_label = qtw.QLabel("Ticker:")
-    #     # self.ticker_input = QLineEdit()
-    #     # self.enter_ticker = QPushButton()
-
-    #     # configure_button(self.enter_ticker, 
-    #     #                  text="Enter",
-    #     #                  command=self.get_ticker_data
-    #     #                  )
+        self.options.clear()
+        self.expirations.clear()
+        self.div_yields.clear()
+        self.positions.clear()
+        self.total_cost = 0
         
-    #     # ticker_layout.addWidget(ticker_label)
-    #     # ticker_layout.addWidget(self.ticker_input)
+        self.update_plot()
 
-    #     # # Add to the left layout
-    #     # left_layout.addLayout(ticker_layout)
-    #     left_layout.addWidget(self.enter_ticker)
+    def show_heatmap(self):
+        '''
+        Shows the future payoff heatmap.
+        '''
+        if not hasattr(self, 'interest_rate') or not self.options:
+            QMessageBox.warning(
+                self,
+                "No Options Data",
+                "Please load data before showing the heatmap.",
+                QMessageBox.Ok
+            )
+            return
 
-    #     layout.addLayout(left_layout, stretch = 0)
+        self.heatmap = Heatmap(self.options,
+                        self.expirations,
+                        self.interest_rate,
+                        self.div_yields,
+                        self.positions,
+                        self.engine.get_price(self.ticker),
+                        self.total_cost
+                        )
+        self.heatmap.show()
 
-    #     self.configure_figure(layout)
 
-    # def read_demo_data(self, filepath:str = 'data/demo_data.json') -> dict:
-    #     with open('data/demo_data.json', 'r') as file:
-    #         data = json.load(file)
-    #     return data

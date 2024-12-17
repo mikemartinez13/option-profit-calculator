@@ -5,3 +5,4 @@ hold.txt
 __pycache__
 .ipynb_checkpoints
 schwab_test.ipynb
+tests/
