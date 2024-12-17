@@ -138,4 +138,12 @@ python main.py
 ```
 In the command line. The first time you run this, Schwab may ask you to sign in and approve connection to your trading account. This window may appear: 
 
-![loginscreen](project-writeup/loginscreen.png)
+![loginscreen](project-writeup/assets/loginscreen.png)
+
+Here, you will log in with your Charles Schwab trading account, not Schwab Developer. To update authorization, check all agreements and approve linking to your Charles Schwab account. Once you have done that, you will be taken to a screen like this: 
+
+![urlscreen](project-writeup/assets/urlscreen.png)
+
+Click on the top URL in this window and paste it into the command line where you are running the application, where it reads "After authorizing, paste the address bar url here:"
+
+Once you've done that, the app will open after a few seconds and be ready to query data!
