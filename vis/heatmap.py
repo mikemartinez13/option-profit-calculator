@@ -16,7 +16,7 @@ from numpy.typing import NDArray
 
 
 class Heatmap(qtw.QWidget):
-    def __init__(self, options, expirations, interest_rate, div_yields, positions, stock_price, cost):
+    def __init__(self, options, expirations, interest_rate, div_yields, positions, stock_price, cost, demo=False):
         '''
         Initialize the heatmap class. 
 
@@ -41,6 +41,7 @@ class Heatmap(qtw.QWidget):
         self.s0 = stock_price
         self.cost = cost
         self.num_prices = 20
+        self.demo = demo
 
         self.value_toggle = True
         # controls how many stock prices are displayed on the heatmap
@@ -268,7 +269,10 @@ class Heatmap(qtw.QWidget):
         date_range = []
         exp = max(self.expirations)  
 
-        today = datetime.today().date()
+        if self.demo:
+            today = datetime(2024, 11, 22).date()
+        else:
+            today = datetime.today().date()
 
         if exp <= 19:
             # If the range is 20 days or fewer, include every date
@@ -322,7 +326,10 @@ class Heatmap(qtw.QWidget):
 
             for i, date in enumerate(self.date_range):
                 if i == 0:
-                    dt = datetime.today()
+                    if self.demo:
+                        dt = datetime(2024, 11, 22)
+                    else:   
+                        dt = datetime.today()
                 else:
                     dt = datetime.strptime(date, '%Y-%m-%d').replace(hour=16, minute=0, second=0) # set time to 4pm for market close
                 dte = (exp - dt).total_seconds()/(365*86400)

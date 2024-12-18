@@ -75,6 +75,7 @@ class OptionChainWindow(qtw.QWidget):
         self.setWindowTitle("Options Chains by Expiration Date")
         self.setGeometry(200, 200, 1600, 600)
 
+        self.demo = demo
         if demo:
             self.engine = DummyData()
         else:
@@ -647,8 +648,6 @@ class OptionChainWindow(qtw.QWidget):
         self.reset_button.setEnabled(False)
         self.heatmap.setEnabled(False)
 
-        self.update_plot()
-
     def show_heatmap(self) -> None:
         '''
         Shows the future payoff heatmap. Checks if the necessary data is loaded before showing the heatmap.
@@ -669,7 +668,8 @@ class OptionChainWindow(qtw.QWidget):
                         self.div_yields,
                         self.positions,
                         self.engine.get_price(self.ticker),
-                        self.total_cost
+                        self.total_cost,
+                        self.demo
                         )
         self.heatmap.setStyleSheet('''
                     QWidget { 

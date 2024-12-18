@@ -8,6 +8,8 @@ from typing import Optional
 import pyqtgraph as pg
 from PyQt5 import QtWidgets as qtw
 
+from typing import Union
+
 def convert_dates(dates: list) -> list:
     '''
     Converts a list of dates from the format 'Month Day, Year' to 'YYYY-MM-DD'.
@@ -24,27 +26,27 @@ def convert_dates(dates: list) -> list:
 
 # Functions to graph possible payoff of options strategies
 
-def long_call(S:np.array | float, K:float, Price:float) -> np.array | float:
+def long_call(S: Union[np.array, float], K:float, Price:float) -> Union[np.array, float]:
     '''
     Calculate the payoff of a long call option. Returns the payoff in dollars.
     '''
     P = np.maximum(S-K, 0) - (Price)
     return P*100
 
-def short_call(S:np.array | float, K:float, Price:float) -> np.array | float:
+def short_call(S: Union[np.array, float], K:float, Price:float) -> Union[np.array, float]:
     '''
     Calculate the payoff of a short call option. Returns the payoff in dollars.
     '''
     return -1.0 * long_call(S, K, Price)
 
-def long_put(S:np.array | float, K:float, Price:float) ->  np.array | float:
+def long_put(S: Union[np.array, float], K:float, Price:float) -> Union[np.array, float]:
     '''
     Calculate the payoff of a long put option. Returns the payoff in dollars.
     '''
     P = np.maximum(K-S, 0) - (Price)
     return P*100
 
-def short_put(S: np.array, K:float, Price:float) ->  np.array | float: 
+def short_put(S: Union[np.array, float], K:float, Price:float) -> Union[np.array, float]: 
      '''
      Calculate the payoff of a short put option. Returns the payoff in dollars.
      '''

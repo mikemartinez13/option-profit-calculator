@@ -38,14 +38,18 @@ et-xmlfile==1.1.0
 exceptiongroup @ file:///home/conda/feedstock_root/build_artifacts/exceptiongroup_1704921103267/work
 executing @ file:///home/conda/feedstock_root/build_artifacts/executing_1698579936712/work
 fake-useragent==1.5.1
+fastjsonschema==2.20.0
+feature-engine==1.8.2
 feedparser==6.0.11
-Flask==3.0.3
+Flask==2.2.5
+Flask-SQLAlchemy==3.1.1
 fonttools==4.25.0
 frozendict==2.4.4
 geopandas==1.0.1
 gitdb==4.0.11
 GitPython==3.1.42
 graphviz==0.20.3
+greenlet==3.1.1
 html5lib==1.1
 idna @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/idna_1699473483982/work
 importlib_metadata @ file:///home/conda/feedstock_root/build_artifacts/importlib-metadata_1710971335535/work
@@ -75,6 +79,7 @@ mkl-random @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/mkl_r
 mkl-service==2.4.0
 multitasking==0.0.11
 munkres==1.1.4
+nbformat==5.10.4
 nest_asyncio @ file:///home/conda/feedstock_root/build_artifacts/nest-asyncio_1705850609492/work
 numexpr @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/numexpr_1699503421264/work
 numpy @ file:///C:/b/abs_c1ywpu18ar/croot/numpy_and_numpy_base_1708638681471/work/dist/numpy-1.26.4-cp312-cp312-win_amd64.whl#sha256=becc06674317799ad0165a939a7613809d0bee9bd328a1e4308c57c39cacf08c
@@ -107,8 +112,12 @@ pyogrio==0.10.0
 pyparsing @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/pyparsing_1699476875614/work
 pyppeteer==2.0.0
 pyproj==3.7.0
-PyQt5==5.15.10
-PyQt5-sip @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/pyqt-split_1699478669290/work/pyqt_sip
+PyQt5==5.15.11
+PyQt5-Qt5==5.15.2
+PyQt5_sip==12.16.0
+pyqtgraph==0.13.7
+PyQtWebEngine==5.15.7
+PyQtWebEngine-Qt5==5.15.2
 pyquery==2.0.0
 PySocks @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/pysocks_1699473336188/work
 python-dateutil @ file:///tmp/build/80754af9/python-dateutil_1626374649649/work
@@ -135,6 +144,8 @@ sip @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/sip_16994755
 six @ file:///tmp/build/80754af9/six_1644875935023/work
 smmap==5.0.1
 soupsieve==2.5
+spotipy==2.18.0
+SQLAlchemy==2.0.36
 stack-data @ file:///home/conda/feedstock_root/build_artifacts/stack_data_1669632077133/work
 statsmodels==0.14.4
 streamlit==1.32.2
@@ -155,7 +166,7 @@ watchdog==4.0.0
 wcwidth @ file:///home/conda/feedstock_root/build_artifacts/wcwidth_1704731205417/work
 webencodings==0.5.1
 websockets==10.4
-Werkzeug==3.0.6
+Werkzeug==2.2.2
 wheel==0.41.2
 win-inet-pton @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/win_inet_pton_1699472992992/work
 yahoo-fin==0.8.9.1
