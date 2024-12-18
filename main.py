@@ -5,27 +5,7 @@ import argparse
 
 def main(demo: bool = False):
     app = qtw.QApplication([])
-    app.setStyleSheet('''
-                    QWidget { 
-                    font-family: Arial;
-                    font-size: 16px;
-                    color: white;
-                    /* background: #1A273C; */
-                    background: #17212e;
-                    }
-
-                    QPushButton {
-                    /* background-color: #614393; */
-                    background-color: #2c405a;
-                    padding: 8px;
-                    border-radius: 5px 5px 0 0;
-                    }
-
-                    QPushButton:hover {
-                    background-color: #8e64d4;
-                    }
-                    
-                    ''')
+    
     window = win.MainWindow(demo=demo)
     window.show()
     sys.exit(app.exec_())

@@ -578,12 +578,18 @@ class OptionChainWindow(qtw.QWidget):
         }
         self.update_option_labels(option_data)
 
+        # self.current_option = None
         self.options.clear()
         self.expirations.clear()
         self.div_yields.clear()
         self.positions.clear()
         self.total_cost = 0
         
+        self.long_button.setEnabled(False)
+        self.short_button.setEnabled(False)
+        self.reset_button.setEnabled(False)
+        self.heatmap.setEnabled(False)
+
         self.update_plot()
 
     def show_heatmap(self):

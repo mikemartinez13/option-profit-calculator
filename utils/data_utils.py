@@ -10,6 +10,8 @@ from collections import defaultdict
 import json
 from pathlib import Path
 from pytz import timezone
+import requests
+
 
 
 def filter_chain(chain: pd.DataFrame):
@@ -79,8 +81,11 @@ class SchwabData:
         self.app_key = os.getenv('APP_KEY')
         self.secret = os.getenv('SECRET_KEY')
 
-        self.client = schwabdev.Client(app_key=self.app_key, app_secret=self.secret)
-
+        try:
+            self.client = schwabdev.Client(app_key=self.app_key, app_secret=self.secret)
+        except requests.exceptions.ConnectionError as e:
+            print('Error connecting to Schwab API. Please check your connection and your credentials and try again.')
+            exit()
         return
     
     def get_options_chain_dict(self, ticker:str) -> tuple[dict[pd.DataFrame], float]:

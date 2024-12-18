@@ -38,12 +38,12 @@ def long_put(S, K, Price):
 def short_put(S, K, Price):
      return -1.0 * long_put(S, K, Price)
 
-def get_stock_prices(s0):
+def get_stock_prices(s0,K):
     '''
     s0: current stock price
     '''
-    lower = s0 * (1 - 5) 
-    upper = s0 * (1 + 5)
+    lower = min(s0 * 0.05, K * 0.05)
+    upper = max(s0 * 6, K * 6)
 
     return np.linspace(lower, upper, num=1000).round(2)
 
@@ -250,7 +250,7 @@ class OptionPayoffPlot(qtw.QWidget):
         Adds an option's payoff to the plot
         '''
 
-        self.xdata = get_stock_prices(s0)
+        self.xdata = get_stock_prices(s0, option['Strike'])
         self.s0 = s0
 
         if opt_type == 'call':
