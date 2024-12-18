@@ -236,14 +236,56 @@ class Heatmap(qtw.QWidget):
         return price_range, price_positions
     
     def generate_dates(self):
+        '''
+        Get a range of dates, limited to 20 dates equally spaced apart. Also gets the indices of the dates.
+        '''
+        # date_range = []
+        # exp = max(self.expirations)
+
+        # for i in range(0, exp+1):
+        #     date_range.append((datetime.today() + timedelta(days=i)).strftime('%Y-%m-%d'))
+
+        # date_indices = np.arange(len(date_range)) # get indices of dates, e.g. [0, 1, 2, 3, 4]
+
+        # return date_range, date_indices
+
         date_range = []
-        exp = max(self.expirations)
+        exp = max(self.expirations)  
 
-        for i in range(0, exp+1):
-            date_range.append((datetime.today() + timedelta(days=i)).strftime('%Y-%m-%d'))
+        today = datetime.today().date()
 
-        date_indices = np.arange(len(date_range)) # get indices of dates, e.g. [0, 1, 2, 3, 4]
+        if exp <= 19:
+            # If the range is 20 days or fewer, include every date
+            for i in range(0, exp + 1):
+                current_date = today + timedelta(days=i)
+                date_range.append(current_date.strftime('%Y-%m-%d'))
+        else:
+            # If the range exceeds 20 days, select 20 equally spaced dates
+            num_dates = 20  
+            step = exp / (num_dates - 1)  
 
+            indices = [int(round(i * step)) for i in range(num_dates)]
+            indices = [min(idx, exp) for idx in indices]
+            unique_indices = []
+            seen = set()
+            for idx in indices:
+                if idx not in seen:
+                    unique_indices.append(idx)
+                    seen.add(idx)
+
+            while len(unique_indices) < num_dates:
+                unique_indices.append(exp)
+
+            unique_indices = unique_indices[:num_dates]
+
+            # Generate dates based on the unique indices
+            for idx in unique_indices:
+                current_date = today + timedelta(days=idx)
+                date_range.append(current_date.strftime('%Y-%m-%d'))
+
+        # gen corresponding date indices
+        date_indices = np.arange(len(date_range)) 
+        
         return date_range, date_indices
     
     def generate_data(self):

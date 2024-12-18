@@ -613,6 +613,26 @@ class OptionChainWindow(qtw.QWidget):
                         self.engine.get_price(self.ticker),
                         self.total_cost
                         )
+        self.heatmap.setStyleSheet('''
+                    QWidget { 
+                    font-family: Arial;
+                    font-size: 16px;
+                    color: white;
+                    background: #17212e;
+                    }
+
+                    QPushButton {
+                    /* background-color: #614393; */
+                    background-color: #2c405a;
+                    padding: 8px;
+                    border-radius: 5px 5px 0 0;
+                    }
+
+                    QPushButton:hover {
+                    background-color: #8e64d4;
+                    }
+                    
+                    ''')
         self.heatmap.show()
 
 
