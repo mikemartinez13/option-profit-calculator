@@ -6,6 +6,7 @@ channels:
   - nvidia
   - https://public.dhe.ibm.com/ibmdl/export/pub/software/server/ibm-ai/conda/
 dependencies:
+  - conda-forge::python-graphviz
   - archspec=0.2.3=pyhd3eb1b0_0
   - asttokens=2.4.1=pyhd8ed1ab_0
   - blas=1.0=mkl
@@ -217,7 +218,6 @@ dependencies:
       - pyquery==2.0.0
       - python-decouple==3.8
       - python-dotenv==1.0.1
-      - python-graphviz==0.20.3
       - referencing==0.34.0
       - requests-html==0.10.0
       - retrying==1.3.4
