@@ -12,9 +12,24 @@ from optlib.gbs import american, black_scholes
 import PyQt5.QtWidgets as qtw
 import pyqtgraph as pg
 
+from numpy.typing import NDArray
+
 
 class Heatmap(qtw.QWidget):
     def __init__(self, options, expirations, interest_rate, div_yields, positions, stock_price, cost):
+        '''
+        Initialize the heatmap class. 
+
+        ### Parameters:
+        - options: list[dict]: List of option contracts.
+        - expirations: list[int]: List of expiration dates.
+        - interest_rate: float: Risk-free interest rate.
+        - div_yields: list[float]: List of dividend yields.
+        - positions: list[str]: List of positions (long/short).
+        - stock_price: float: Current stock price.
+        - cost: float: Cost of the option strategy.
+
+        '''
         super().__init__()
 
         # Necessary financial data
@@ -60,7 +75,11 @@ class Heatmap(qtw.QWidget):
     
     def __configure_plot(self, layout: qtw.QHBoxLayout):
         '''
-        Configure the plot layout.
+        Configure the plot layout. Generates plot data using self.generate_data(). Sets zoom limits for the plot and 
+        adds annotations to the plot.
+
+        ### Parameters:
+        - layout: qtw.QHBoxLayout: Layout to add the plot to.
         '''
         # Create a GraphicsLayoutWidget
         self.graph_widget = pg.GraphicsLayoutWidget()
@@ -87,6 +106,11 @@ class Heatmap(qtw.QWidget):
         return
 
     def __label_plot(self, img: pg.ImageItem) -> pg.PlotItem:
+        '''
+        Adds annotations to the plot. Returns the plot with labels.
+        ### Parameters:
+        - img: pg.ImageItem: ImageItem to add to the plot.
+        '''
         
         xticks = [ (pos+0.5, date) for pos, date in zip(self.date_indices, self.date_range) ]
         yticks = [ (pos, str(price)) for pos, price in enumerate(self.prices) ]
@@ -97,8 +121,6 @@ class Heatmap(qtw.QWidget):
 
         self.yaxis = pg.AxisItem('left')
         self.yaxis.setTicks([yticks])
-
-        #axis.setLabel(rotation=45)
 
         plot = self.graph_widget.addPlot(axisItems={'bottom': self.xaxis, 
                                                     'left': self.yaxis})
@@ -112,9 +134,12 @@ class Heatmap(qtw.QWidget):
 
         return plot
 
-    def __configure_buttons(self, layout: qtw.QHBoxLayout):
+    def __configure_buttons(self, layout: qtw.QHBoxLayout) -> qtw.QVBoxLayout:
         '''
-        Configure the buttons layout.
+        Configure the buttons layout. Adds the profit button to toggle between value and profit. 
+
+        ### Parameters:
+        - layout: qtw.QHBoxLayout: Layout to add the buttons to.
         '''
         button_layout = qtw.QVBoxLayout()
         layout.addLayout(button_layout)
@@ -124,24 +149,15 @@ class Heatmap(qtw.QWidget):
         profit_button.clicked.connect(self.profit_value_toggle)
         button_layout.addWidget(profit_button)
 
-        # # Add a button to save the heatmap
-        # save_button = qtw.QPushButton("Save Heatmap")
-        # save_button.clicked.connect(self.save_heatmap)
-        # button_layout.addWidget(save_button)
-
         return button_layout
 
-    def __configure_controls(self, layout: qtw.QVBoxLayout):
+    def __configure_controls(self, layout: qtw.QVBoxLayout) -> None:
         '''
-        Configure controls for setting stock price ranges, .
+        Configure controls for setting stock price ranges. 
+
+        ### Parameters:
+        - layout: qtw.QVBoxLayout: Layout to add the controls to.
         '''
-        # Add a slider to control the number of stock prices
-        # price_slider = qtw.QSlider()
-        # price_slider.setOrientation(qtc.Qt.Horizontal)
-        # price_slider.setRange(10, 70)
-        # price_slider.setValue(self.num_prices)
-        # price_slider.valueChanged.connect(self.update_prices)
-        # control_layout.addWidget(price_slider)
 
         range_label_y = qtw.QLabel("Set Stock Price Range:")
         layout.addWidget(range_label_y)
@@ -174,7 +190,7 @@ class Heatmap(qtw.QWidget):
 
         return
     
-    def __set_plot_data(self, data):
+    def __set_plot_data(self, data: NDArray[np.float64]) -> None:
         # Set image data
         self.img_item.setImage(data)
 
@@ -197,9 +213,9 @@ class Heatmap(qtw.QWidget):
 
         return
 
-    def __update_plot(self):
+    def __update_plot(self) -> None:
         '''
-        Update the plot with new data.
+        Update the plot with new data. Usually used if the user changes the stock range. 
         '''
         self.value_matrix, self.profit_matrix = self.generate_data()
         
@@ -211,7 +227,7 @@ class Heatmap(qtw.QWidget):
 
         return
 
-    def __update_yticks(self):
+    def __update_yticks(self) -> None:
         '''
         Update the y-axis (stock prices) ticks.
         '''
@@ -235,7 +251,7 @@ class Heatmap(qtw.QWidget):
 
         return price_range, price_positions
     
-    def generate_dates(self):
+    def generate_dates(self) -> tuple[list, list]:
         '''
         Get a range of dates, limited to 20 dates equally spaced apart. Also gets the indices of the dates.
         '''
@@ -285,12 +301,13 @@ class Heatmap(qtw.QWidget):
 
         # gen corresponding date indices
         date_indices = np.arange(len(date_range)) 
-        
+
         return date_range, date_indices
     
-    def generate_data(self):
+    def generate_data(self) -> tuple[NDArray[np.array], NDArray[np.array]]:
         '''
-        Generates data for heatmap using attributes of the class.
+        Generates data for heatmap using attributes of the class. Calculates value using Bjerksund-Stensland model. Returns
+        a tuple of the value matrix and profit matrix, both 2D numpy arrays.
         '''
 
         values = np.zeros((len(self.date_range), len(self.prices)))
@@ -331,7 +348,7 @@ class Heatmap(qtw.QWidget):
         profit = values - self.cost
         return values, profit
 
-    def add_annotations(self):
+    def add_annotations(self) -> None:
         """
         Adds text annotations to each cell of the heatmap.
         """
@@ -358,8 +375,10 @@ class Heatmap(qtw.QWidget):
 
                 self.annotations.append(text) # keep track of annotations
 
+        return
+
     
-    def get_colormap(self):
+    def get_colormap(self) -> pg.ColorMap:
         """
         Returns a colormap for the heatmap.
         """
@@ -373,19 +392,9 @@ class Heatmap(qtw.QWidget):
         # Create the custom colormap
         cmap = pg.ColorMap(pos=positions, color=colors)
         return cmap
-
-    
-    # def add_color_bar(self, cmap):
-    #     # Create a color bar
-    #     color_bar = pg.GradientEditorItem()
-    #     color_bar.restoreState({'mode': 'rgb', 'ticks': [(0.0, (0, 0, 255, 255)),
-    #                                                      (0.5, (0, 255, 0, 255)),
-    #                                                      (1.0, (255, 0, 0, 255))]})
-    #     self.graph_widget.nextRow()
-    #     self.graph_widget.addItem(color_bar)
     
         
-    def set_zoom_limits(self):
+    def set_zoom_limits(self) -> None:
         """
         Sets the minimum and maximum limits for zooming on both X and Y axes.
         Users won't be able to zoom out beyond these limits.
@@ -405,7 +414,7 @@ class Heatmap(qtw.QWidget):
         # Connect signals to enforce limits during interactions
         self.view_box.sigRangeChanged.connect(self.on_range_changed)
 
-    def on_range_changed(self):
+    def on_range_changed(self) -> None:
         """
         Slot to handle range changes and enforce zoom limits.
         """
@@ -447,7 +456,7 @@ class Heatmap(qtw.QWidget):
     ##############################
 
 
-    def profit_value_toggle(self):
+    def profit_value_toggle(self) -> None:
         '''
         Toggle between profit and value.
         '''
@@ -459,7 +468,7 @@ class Heatmap(qtw.QWidget):
             self.__set_plot_data(self.value_matrix)
 
     
-    def update_y_range(self):
+    def update_y_range(self) -> None:
         """
         Updates the Y-axis range based on user input.
         """

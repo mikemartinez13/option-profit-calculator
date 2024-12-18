@@ -91,18 +91,25 @@ def configure_button(button: qtw.QPushButton,
 
 
 class PandasModel(QtCore.QAbstractTableModel):
-    # Directly ported from this StackOverflow post https://stackoverflow.com/questions/44603119/how-to-display-a-pandas-data-frame-with-pyqt5-pyside2, aided by ChatGPT to update outdated methods. 
     '''
     Custom class to display pandas dataframes in PyQt5. Inherits from QAbstractTableModel.
+    Directly ported from this StackOverflow post https://stackoverflow.com/questions/44603119/how-to-display-a-pandas-data-frame-with-pyqt5-pyside2, 
+    aided by ChatGPT to update outdated methods. 
     '''
     def __init__(self, data: pd.DataFrame, parent=None):
         super().__init__(parent)
         self._data = data.copy()
 
-    def rowCount(self, parent=None):
+    def rowCount(self, parent=None) -> int:
+        '''
+        Returns the number of rows in the dataframe.
+        '''
         return self._data.shape[0]
 
-    def columnCount(self, parent=None):
+    def columnCount(self, parent=None) -> int:
+        '''
+        Returns the number of columns in the dataframe.
+        '''
         return self._data.shape[1]
 
     def data(self, index, role=Qt.DisplayRole): # role for why the data is requested
@@ -124,6 +131,9 @@ class PandasModel(QtCore.QAbstractTableModel):
         return Qt.ItemIsEnabled | Qt.ItemIsSelectable # allows users to select and view data
 
     def headerData(self, section, orientation, role=Qt.DisplayRole): # displays names of columns and rows
+        '''
+        Displays the headers of the table
+        '''
         if role != Qt.DisplayRole:
             return 
 
@@ -138,6 +148,9 @@ class PandasModel(QtCore.QAbstractTableModel):
         return
     
     def sort(self, column, order):
+        '''
+        Sorts the data by the column and order specified.
+        '''
         colname = self._data.columns[column]
         self.layoutAboutToBeChanged.emit()
         self._data.sort_values(colname, ascending=order == Qt.AscendingOrder, inplace=True)
@@ -145,6 +158,9 @@ class PandasModel(QtCore.QAbstractTableModel):
         self.layoutChanged.emit()
 
     def update_data(self, data: pd.DataFrame):
+        '''
+        Updates the data displayed in the table.
+        '''
         self.beginResetModel()
         self._data = data.copy()
         self.endResetModel()

@@ -20,6 +20,9 @@ class MainWindow(qtw.QMainWindow):
         return
 
     def configure_main_window(self) -> None:
+        '''
+        Method to configure the main window of the application. Adds labels, buttons, and connects them to OptionChainWindow. 
+        '''
         self.setWindowTitle("Trading Tool Dashboard")
         self.setGeometry(100, 100, 800, 600)
         
@@ -74,32 +77,21 @@ class MainWindow(qtw.QMainWindow):
         # Spacer to add some space between the author and buttons
         layout.addSpacing(50)  # Adjust the spacing as needed
 
-        
-        # Create a horizontal layout for the buttons
         button_layout = qtw.QVBoxLayout()
         button_layout.addSpacing(30)
 
-        # Spacer items to center the buttons
-        # Buttons for navigation
         self.strategy_button = qtw.QPushButton("Build Strategy")
         self.strategy_button.setStyleSheet('''font-family: Arial;
                     font-size: 18px;
                     color: white; background-color: #2c405a; border-radius: 5px 5px 0 0;''')
         # Connect buttons to methods
         self.strategy_button.clicked.connect(self.open_strategy_builder)
-        #self.strategy_button.setFixedSize(200, 60)
-        #self.strategy_button.setIcon(QIcon("path/to/strategy_icon.png"))  # Replace with actual image path
-        #self.strategy_button.setIconSize(Qt.QSize(40, 40))  # Adjust icon size as needed
         button_layout.addWidget(self.strategy_button)
 
         self.portfolio_button = qtw.QPushButton("View Portfolio")
         self.portfolio_button.setStyleSheet('''font-family: Arial;
                     font-size: 18px;
                     color: white; background-color: #2c405a; border-radius: 5px 5px 0 0;''')
-        #self.portfolio_button.setFixedSize(200, 60)
-        #self.portfolio_button.setIcon(QIcon("path/to/portfolio_icon.png"))  # Replace with actual image path
-        #self.portfolio_button.setIconSize(QSize(40, 40))  # Adjust icon size as needed
-        # self.portfolio_button.clicked.connect(self.open_portfolio_viewer)
         button_layout.addWidget(self.portfolio_button)
 
 

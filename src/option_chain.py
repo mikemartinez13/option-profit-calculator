@@ -33,6 +33,42 @@ class OptionChainWindow(qtw.QWidget):
     '''
     A window that contains multiple tabs, each representing an expiration date.
     Each tab contains a table displaying the options chain for that expiration date.
+
+
+    ### Attributes:
+    - engine: SchwabData: The data engine to retrieve options chain data.
+    - display: OptionPayoffPlot: The plot to display the option strategy.
+    - heatmap: QPushButton: Button to show the future payoff heatmap.
+    - ticker: str: The ticker symbol for the stock.
+    - total_cost: float: The total cost of all options in the strategy.
+    - show_calls: bool: Toggle state for calls/puts.
+    - table_views: list[dict]: List of dictionaries containing table views and data for each expiration date.
+    - options: list[dict]: List of dictionaries containing option data.
+    - expirations: list[int]: List of days to expiration for each option.
+    - div_yields: list[float]: List of dividend yields for each option.
+    - positions: list[str]: List of positions for each option.
+    - current_option: dict: The current option selected by the user.
+    - type: str: The type of option selected (call or put).
+    - calls_data: dict: Dictionary containing calls data.
+    - puts_data: dict: Dictionary containing puts data.
+    - interest_rate: float: The risk-free interest rate.
+
+    ### Methods: 
+    - configure_left_layout: Configures the left layout of the window.
+    - configure_figure: Configures the right layout of the window.
+    - show_no_data_message: Displays a message indicating that no data is loaded.
+    - initialize_labels: Initializes QLabel widgets for displaying descriptive statistics.
+    - update_stock_labels: Updates the labels with the given stock data.
+    - update_option_labels: Updates the labels with new options data.
+    - add_tab: Adds a new tab for a given expiration date with its options chain table.
+    - retrieve_option: Slot to handle click events on the table view.
+    - toggle_calls_puts: Toggles the displayed options between calls and puts.
+    - get_ticker_data: Get the options chain data for the given ticker and add tabs for each expiration date.
+    - add_long: Adds a long option to the plot.
+    - add_short: Adds a short option to the plot.
+    - reset_plot: Resets the plot.
+    - show_heatmap: Shows the future payoff heatmap.
+
     '''
     def __init__(self, demo = False, parent=None):
         super().__init__(parent)
@@ -95,7 +131,14 @@ class OptionChainWindow(qtw.QWidget):
 
         return
 
-    def configure_left_layout(self, layout: QVBoxLayout):
+    def configure_left_layout(self, layout: QVBoxLayout) -> None:
+        '''
+        Configure the left layout of the window. Includes the input fields for the ticker and the buttons, labels for stock price, 
+        option greeks, and a toggle button to switch between calls and puts.
+
+        ### Parameters:
+        - layout: QVBoxLayout: The layout to add the left layout to.
+        '''
         left_layout = qtw.QVBoxLayout()
         left_layout.setContentsMargins(20, 50, 20, 20)
 
@@ -141,7 +184,16 @@ class OptionChainWindow(qtw.QWidget):
 
         layout.addLayout(left_layout, stretch = 0)
 
-    def configure_figure(self, layout: QVBoxLayout):
+        return 
+
+    def configure_figure(self, layout: QVBoxLayout) -> None:
+        '''
+        Configures the right layout of the window. Includes the figure for the option payoff plot, buttons to add long and short options,
+        a button to reset the plot, and a button to show the future payoff heatmap. The future payoff heatmap connects to the Heatmap class.
+        
+        ### Parameters:
+        - layout: QVBoxLayout: The layout to add to.
+        '''
 
         right_layout = qtw.QVBoxLayout()
 
@@ -183,7 +235,7 @@ class OptionChainWindow(qtw.QWidget):
         
         layout.addLayout(right_layout, stretch = 2)
 
-    def show_no_data_message(self):
+    def show_no_data_message(self) -> None:
         '''
         Displays a message indicating that no data is loaded.
         '''
@@ -201,12 +253,14 @@ class OptionChainWindow(qtw.QWidget):
         # Add the tab to the QTabWidget
         self.tabs.addTab(tab, "No Data")
 
-    def initialize_labels(self, stocklayout: QGridLayout, optionlayout: QGridLayout):
+    def initialize_labels(self, stocklayout: QGridLayout, optionlayout: QGridLayout) -> None:
         '''
         Initializes QLabel widgets for displaying descriptive statistics and adds them to the top layout.
         
-        ### Returns:
-        - None
+        ### Parameters:
+        - stocklayout: QGridLayout: The layout to add the ticker and stock price labels to.
+        - optionlayout: QGridLayout: The layout to add the option greeks labels to. Only for option info.
+
         '''
         # Define the labels you want to display
         title_names = ["Stock Ticker","Current Price"]
@@ -259,13 +313,14 @@ class OptionChainWindow(qtw.QWidget):
             # Store the label in the dictionary for easy access
             self.option_labels[name] = value
 
-    def update_stock_labels(self, stock_data: dict):
+        return
+
+    def update_stock_labels(self, stock_data: dict) -> None:
         '''
         Updates the labels with the given data.
         
         ### Parameters:
         - stock_data: dict: Dictionary containing stock data.
-        - option_data: dict: Dictionary containing option data.
         
         ### Returns:
         - None
@@ -276,12 +331,11 @@ class OptionChainWindow(qtw.QWidget):
 
         return
 
-    def update_option_labels(self, option_data: dict, option_type: Optional[str] = None):
+    def update_option_labels(self, option_data: dict, option_type: Optional[str] = None) -> None:
         '''
-        Updates the labels with new options data.
+        Updates the labels with new options data. Dependent on what kind of option is being added (long or short).
         
         ### Parameters:
-        - stock_data: dict: Dictionary containing stock data.
         - option_data: dict: Dictionary containing option data.
         - option_type: str: 'long' or 'short'
         
@@ -301,23 +355,16 @@ class OptionChainWindow(qtw.QWidget):
                     self.option_labels[name].setText(f"{curr_val-value:.2f}")
             
         return
-        
-    
-    def update_plot(self):
-        
-        # self.canvas.setHtml(self.display.html)
-        # return 
-        pass
 
-
-    def add_tab(self, expiration_date: str, calls_df: pd.DataFrame, puts_df: pd.DataFrame):
+    def add_tab(self, expiration_date: str, calls_df: pd.DataFrame, puts_df: pd.DataFrame) -> None:
         '''
-        Adds a new tab for a given expiration date with its options chain table.
+        Adds a new tab for a given expiration date with its options chain table. Each tab is a TableView widget.
+        Used to display the options chain data for a given expiration date.
 
-        Parameters:
-            expiration_date (str): The expiration date label for the tab.
-            df (pd.DataFrame): The options chain data to display in the table.
-            The data inserted into the table is originally in the form of 'exp_date': pd.DataFrame
+        ### Parameters:
+            - expiration_date (str): The expiration date label for the tab.
+            - df (pd.DataFrame): The options chain data to display in the table.
+            - The data inserted into the table is originally in the form of 'exp_date': pd.DataFrame
         '''
         # Create a new QWidget for the tab
         tab = qtw.QWidget()
@@ -326,7 +373,8 @@ class OptionChainWindow(qtw.QWidget):
 
         # Create the table view
         table_view = QTableView()
-        # table_view.setStyleSheet("background: #000000; color: white;")
+
+        # Set the style for the table. 
         table_view.setStyleSheet("""
             QTableView {
                 background-color: #000000; 
@@ -349,7 +397,6 @@ class OptionChainWindow(qtw.QWidget):
         """)
         table_view.setEditTriggers(qtw.QAbstractItemView.NoEditTriggers)  # Make table read-only
         table_view.setSelectionBehavior(qtw.QAbstractItemView.SelectRows)
-        #table_view.setAlternatingRowColors(True)
         table_view.setSortingEnabled(True)  # Enable sorting
 
         # Create and set the model
@@ -378,9 +425,13 @@ class OptionChainWindow(qtw.QWidget):
             'current_model': model
         })
 
-    def retrieve_option(self, index: QModelIndex):
+    def retrieve_option(self, index: QModelIndex) -> None:
         '''
-        Slot to handle click events on the table view.
+        Slot to handle click events on the table view. Turns on the buttons to add long and short options to the plot.
+        Instantiates the current_option attribute with the data of the selected option. Also sets the text of the option_description label.
+
+        ### Parameters:
+        - index (QModelIndex): The index of the clicked cell.
         '''
         if not index.isValid():
             return
@@ -421,7 +472,7 @@ class OptionChainWindow(qtw.QWidget):
 
         return
 
-    def toggle_calls_puts(self):
+    def toggle_calls_puts(self) -> None:
         '''
         Toggles the displayed options between calls and puts.
         '''
@@ -449,7 +500,12 @@ class OptionChainWindow(qtw.QWidget):
         
         return
 
-    def get_ticker_data(self):
+    def get_ticker_data(self) -> None:
+        '''
+        Get the options chain data for the given ticker and add tabs for each expiration date. Uses the SchwabData class to get the data from Schwab Developer.
+        Adds vertical lines to the plot for the current price of the stock. Instantiates calls_data and puts_data attributes. Clears existing tabs,
+        and adds new ones for the new options chain.
+        '''
 
         if self.ticker and self.ticker_input.text().upper() != self.ticker: # if we have a different ticker than already exists
             reply = QMessageBox.warning(
@@ -505,9 +561,10 @@ class OptionChainWindow(qtw.QWidget):
 
         return
 
-    def add_long(self):
+    def add_long(self) -> None:
         '''
-        Adds a long option to the plot.
+        Adds a long option to the plot. Updates the plot with the new option. Stores the new option and its attributes 
+        as an attribute of the class, and also updates the labels accordingly. 
         '''
         self.display.add_option(option=self.current_option, 
                                 opt_type=self.type, 
@@ -530,12 +587,12 @@ class OptionChainWindow(qtw.QWidget):
         }
         self.update_option_labels(options_data,'long')
 
-        self.update_plot()
         return
 
-    def add_short(self):
+    def add_short(self) -> None:
         '''
-        Adds a short option to the plot.
+        Adds a short option to the plot. Updates the plot with the new option. Stores the new option and its attributes 
+        as an attribute of the class, and also updates the labels accordingly. 
         '''
         self.display.add_option(option=self.current_option, 
                                 opt_type=self.type, 
@@ -558,12 +615,12 @@ class OptionChainWindow(qtw.QWidget):
         }
         self.update_option_labels(options_data,'short')
 
-        self.update_plot() # assigns new html to webengineview
         return
     
-    def reset_plot(self):
+    def reset_plot(self) -> None:
         '''
-        Resets the plot.
+        Resets the plot. Clears all stored options and their attributes. Updates the labels accordingly. 
+        Also turns off buttons to prevent errors with empty data
         '''
         self.display.reset_data()
         self.option_description.setText("No option selected.")
@@ -592,9 +649,10 @@ class OptionChainWindow(qtw.QWidget):
 
         self.update_plot()
 
-    def show_heatmap(self):
+    def show_heatmap(self) -> None:
         '''
-        Shows the future payoff heatmap.
+        Shows the future payoff heatmap. Checks if the necessary data is loaded before showing the heatmap.
+        Instantiates a heatmap object and passes in stored data from all the options the user added to their strategy. 
         '''
         if not hasattr(self, 'interest_rate') or not self.options:
             QMessageBox.warning(

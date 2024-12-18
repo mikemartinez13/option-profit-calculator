@@ -8,9 +8,9 @@ from typing import Optional
 import pyqtgraph as pg
 from PyQt5 import QtWidgets as qtw
 
-def convert_dates(dates: list):
+def convert_dates(dates: list) -> list:
     '''
-    Converts list of dates returned by 
+    Converts a list of dates from the format 'Month Day, Year' to 'YYYY-MM-DD'.
     '''
     converted_dates = []
     for date_str in dates:
@@ -24,18 +24,30 @@ def convert_dates(dates: list):
 
 # Functions to graph possible payoff of options strategies
 
-def long_call(S, K, Price):
+def long_call(S:np.array | float, K:float, Price:float) -> np.array | float:
+    '''
+    Calculate the payoff of a long call option. Returns the payoff in dollars.
+    '''
     P = np.maximum(S-K, 0) - (Price)
     return P*100
 
-def short_call(S, K, Price):
+def short_call(S:np.array | float, K:float, Price:float) -> np.array | float:
+    '''
+    Calculate the payoff of a short call option. Returns the payoff in dollars.
+    '''
     return -1.0 * long_call(S, K, Price)
 
-def long_put(S, K, Price):
+def long_put(S:np.array | float, K:float, Price:float) ->  np.array | float:
+    '''
+    Calculate the payoff of a long put option. Returns the payoff in dollars.
+    '''
     P = np.maximum(K-S, 0) - (Price)
     return P*100
 
-def short_put(S, K, Price):
+def short_put(S: np.array, K:float, Price:float) ->  np.array | float: 
+     '''
+     Calculate the payoff of a short put option. Returns the payoff in dollars.
+     '''
      return -1.0 * long_put(S, K, Price)
 
 def get_stock_prices(s0,K):
@@ -239,6 +251,9 @@ class OptionPayoffPlot(qtw.QWidget):
         return
     
     def remove_vlines(self) -> None:
+        '''
+        Removes all vertical lines from the plot.
+        '''
         for line in self.lines:
             self.plot_widget.removeItem(line)
         self.lines.clear()
